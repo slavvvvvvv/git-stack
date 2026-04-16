@@ -131,6 +131,12 @@ trains:
 git stack status
 ```
 
+4. Open the config in your editor:
+
+```bash
+git stack config
+```
+
 ## Common Workflows
 
 ### Sync The Stack
@@ -187,6 +193,21 @@ Behavior:
 
 - fails if `.stack.yml` already exists
 - requires the current directory to be inside a git repository
+
+Arguments:
+
+- none
+
+### `git stack config`
+
+Opens the repo-local `.stack.yml` in the configured editor.
+
+Behavior:
+
+- uses `EDITOR` first
+- falls back to `VISUAL`
+- creates `.stack.yml` from the bundled template if it does not exist yet
+- fails if neither `EDITOR` nor `VISUAL` is set
 
 Arguments:
 
@@ -734,6 +755,13 @@ If your git installation is configured to discover `git-*` executables on your `
 
 ```bash
 git stack --help
+```
+
+To open the local stack config through your editor integration:
+
+```bash
+export EDITOR=nvim
+git stack config
 ```
 
 When you change the source, rebuild before rerunning:

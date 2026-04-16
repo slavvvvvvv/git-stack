@@ -1,4 +1,6 @@
+import { spawnSync } from "node:child_process";
 import { loadGlobalConfig, loadStackConfig } from "./config.js";
+import { getRepoConfigPath, writeTemplateConfig } from "./config.js";
 import { closePullRequest, commentOnPullRequest, createOctokit, ensurePullRequests } from "./github.js";
 import {
   checkoutBranch,
@@ -287,17 +289,62 @@ export async function listTrainsOperation(cwd: string): Promise<OperationResult>
 
 export async function initConfig(cwd: string): Promise<OperationResult> {
   const { repoPath } = await createRepoContext(cwd);
-  const configPath = `${repoPath}/.stack.yml`;
+  const configPath = getRepoConfigPath(repoPath);
   if (await import("node:fs").then((mod) => mod.existsSync(configPath))) {
     throw new Error(`Config already exists at ${configPath}`);
   }
 
-  const { writeTemplateConfig } = await import("./config.js");
   writeTemplateConfig(configPath);
 
   return {
     ok: true,
     message: `Created ${configPath}.`,
     warnings: [],
+  };
+}
+
+export function getConfiguredEditor(env: NodeJS.ProcessEnv): string | null {
+  if (env.EDITOR && env.EDITOR.trim().length > 0) {
+    return env.EDITOR;
+  }
+
+  if (env.VISUAL && env.VISUAL.trim().length > 0) {
+    return env.VISUAL;
+  }
+
+  return null;
+}
+
+export async function openConfigInEditor(cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<OperationResult> {
+  const { repoPath } = await createRepoContext(cwd);
+  const configPath = getRepoConfigPath(repoPath);
+  const editor = getConfiguredEditor(env);
+
+  if (!editor) {
+    throw new Error("No editor configured. Set EDITOR or VISUAL.");
+  }
+
+  if (!(await import("node:fs").then((mod) => mod.existsSync(configPath)))) {
+    writeTemplateConfig(configPath);
+  }
+
+  const result = spawnSync(editor, [configPath], {
+    stdio: "inherit",
+    shell: true,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (typeof result.status === "number" && result.status !== 0) {
+    throw new Error(`Editor exited with status ${result.status}.`);
+  }
+
+  return {
+    ok: true,
+    message: `Opened ${configPath} in ${editor}.`,
+    warnings: [],
+    operations: [`open-config:${configPath}`],
   };
 }

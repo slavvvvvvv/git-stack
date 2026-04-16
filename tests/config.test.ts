@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadStackConfig, resolveCombinedBranch } from "../src/config.js";
+import { getConfiguredEditor } from "../src/operations.js";
 
 function writeConfig(content: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "git-stack-config-"));
@@ -44,5 +45,11 @@ trains:
 `);
 
     expect(() => loadStackConfig(repoPath)).toThrow(/combined branch last/);
+  });
+
+  it("prefers EDITOR over VISUAL and falls back to VISUAL", () => {
+    expect(getConfiguredEditor({ EDITOR: "nvim", VISUAL: "code -w" })).toBe("nvim");
+    expect(getConfiguredEditor({ VISUAL: "code -w" })).toBe("code -w");
+    expect(getConfiguredEditor({})).toBeNull();
   });
 });

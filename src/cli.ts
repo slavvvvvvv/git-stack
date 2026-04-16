@@ -7,6 +7,7 @@ import {
   checkoutTrainBranch,
   ensureTrainPrs,
   initConfig,
+  openConfigInEditor,
   statusOperation,
   syncTrain,
   validateRepo,
@@ -59,6 +60,13 @@ program
   .description("Create a .stack.yml config from the bundled template")
   .action(async () => {
     await runWithOutput(initConfig(process.cwd()), program.opts().json ?? false);
+  });
+
+program
+  .command("config")
+  .description("Open the repo .stack.yml in the configured editor")
+  .action(async () => {
+    await runWithOutput(openConfigInEditor(process.cwd()), program.opts().json ?? false);
   });
 
 program
