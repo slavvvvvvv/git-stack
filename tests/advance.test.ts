@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { activeBranches, normalActiveBranches } from "../src/train.js";
-import type { TrainStatus } from "../src/types.js";
+import { activeBranches, getMergedStatusBaseRef, normalActiveBranches } from "../src/train.js";
+import type { TrainDefinition, TrainStatus } from "../src/types.js";
+
+const trainDefinition: TrainDefinition = {
+  name: "demo",
+  syncBase: "feature-b",
+  prTarget: "main",
+  branches: [
+    { name: "feature-a", role: "normal" },
+    { name: "feature-b", role: "normal" },
+    { name: "combined", role: "combined" },
+  ],
+};
 
 const status: TrainStatus = {
   repoPath: "/tmp/repo",
@@ -9,16 +20,7 @@ const status: TrainStatus = {
   strategy: "merge",
   combinedBranch: "combined",
   warnings: [],
-  train: {
-    name: "demo",
-    syncBase: "main",
-    prTarget: "main",
-    branches: [
-      { name: "feature-a", role: "normal" },
-      { name: "feature-b", role: "normal" },
-      { name: "combined", role: "combined" },
-    ],
-  },
+  train: trainDefinition,
   branches: [
     {
       name: "feature-a",
@@ -51,6 +53,10 @@ const status: TrainStatus = {
 };
 
 describe("active branch helpers", () => {
+  it("uses prTarget rather than syncBase for merged-status ancestry", () => {
+    expect(getMergedStatusBaseRef(trainDefinition)).toBe("main");
+  });
+
   it("keeps combined branch in active list", () => {
     expect(activeBranches(status).map((branch) => branch.name)).toEqual(["feature-b", "combined"]);
   });

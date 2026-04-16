@@ -41,19 +41,23 @@ export async function resolveTrain(git: SimpleGit, trainName: string | undefined
   };
 }
 
+export function getMergedStatusBaseRef(train: TrainDefinition): string {
+  return train.prTarget;
+}
+
 async function buildBranchStatus(
   git: SimpleGit,
   repoPath: string,
   train: TrainDefinition,
   currentBranch: string,
 ): Promise<BranchStatus[]> {
-  const syncBase = train.syncBase;
+  const mergedStatusBaseRef = getMergedStatusBaseRef(train);
   const activeNames = new Set<string>();
   const statuses: BranchStatus[] = [];
 
   for (const [index, branch] of train.branches.entries()) {
     const existsLocally = await branchExists(git, branch.name);
-    const isMerged = existsLocally ? await isAncestor(git, branch.name, syncBase).catch(() => false) : false;
+    const isMerged = existsLocally ? await isAncestor(git, branch.name, mergedStatusBaseRef).catch(() => false) : false;
     if (!isMerged) {
       activeNames.add(branch.name);
     }
