@@ -20,7 +20,55 @@ function normalizeResult<T>(result: T): { content: Array<{ type: "text"; text: s
   };
 }
 
+const MCP_RESOURCES = [
+  "stack://repo/current/state",
+  "stack://repo/current/trains",
+  "stack://repo/current/help",
+];
+
+const MCP_TOOLS = [
+  "stack_help",
+  "stack_list_trains",
+  "stack_get_train",
+  "stack_validate",
+  "stack_sync_train",
+  "stack_ensure_prs",
+  "stack_advance_train",
+  "stack_checkout_branch",
+  "stack_refresh_metadata",
+];
+
+function logStartupBanner(cwd: string): void {
+  const banner = [
+    "   ____ _ _      _____ __             __",
+    "  / __ (_) |_   / ___// /_____ ______/ /__",
+    " / /_/ / / __/  \\__ \\/ __/ __ `/ ___/ //_/",
+    "/ ____/ / /_   ___/ / /_/ /_/ / /__/ ,<",
+    "/_/   /_/\\__/  /____/\\__/\\__,_/\\___/_/|_|",
+  ].join("\n");
+
+  const lines = [
+    banner,
+    "",
+    "git-stack MCP server starting",
+    `workspace: ${cwd}`,
+    "transport: stdio",
+    "status: listening",
+    "",
+    "resources:",
+    ...MCP_RESOURCES.map((resource) => `  - ${resource}`),
+    "",
+    "tools:",
+    ...MCP_TOOLS.map((tool) => `  - ${tool}`),
+    "",
+  ];
+
+  console.error(lines.join("\n"));
+}
+
 export async function startMcpServer(cwd: string): Promise<void> {
+  logStartupBanner(cwd);
+
   const server = new McpServer({
     name: "git-stack",
     version: "0.1.0",
