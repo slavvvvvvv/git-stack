@@ -79,10 +79,9 @@ describe("TOC rendering", () => {
     const toc = renderToc(makeStatus());
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
-    expect(toc).toContain("feature-a");
-    expect(toc).toContain("feature-b");
-    expect(toc).toContain("https://example.test/10");
-    expect(toc).toContain("https://example.test/11");
+    expect(toc).toContain("| Branch | PR | Role | Status |");
+    expect(toc).toContain("| `feature-a` | [#10](https://example.test/10) | branch | current, active |");
+    expect(toc).toContain("| `feature-b` | [#11](https://example.test/11) | branch | merged |");
   });
 
   it("replaces an existing managed section", () => {
