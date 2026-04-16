@@ -21,14 +21,13 @@ function formatPrCell(branch: BranchStatus): string {
     return "No PR";
   }
 
-  return `[#${branch.pr.number}](${branch.pr.url})`;
+  return `[${branch.pr.title}](${branch.pr.url})`;
 }
 
 function renderBranchTable(branches: BranchStatus[]): string[] {
-  const lines = ["| Branch | PR | Role | Status |", "| --- | --- | --- | --- |"];
+  const lines = ["| PR | Status |", "| --- | --- |"];
   for (const branch of branches) {
-    const roleText = branch.role === "combined" ? "combined" : "branch";
-    lines.push(`| \`${branch.name}\` | ${formatPrCell(branch)} | ${roleText} | ${formatStatusText(branch)} |`);
+    lines.push(`| ${formatPrCell(branch)} | ${formatStatusText(branch)} |`);
   }
   return lines;
 }

@@ -79,16 +79,16 @@ describe("TOC rendering", () => {
     const toc = renderToc(makeStatus());
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
-    expect(toc).toContain("| Branch | PR | Role | Status |");
-    expect(toc).toContain("| `feature-a` | [#10](https://example.test/10) | branch | current, active |");
-    expect(toc).toContain("| `feature-b` | [#11](https://example.test/11) | branch | merged |");
+    expect(toc).toContain("| PR | Status |");
+    expect(toc).toContain("| [A](https://example.test/10) | current, active |");
+    expect(toc).toContain("| [B](https://example.test/11) | merged |");
   });
 
   it("replaces an existing managed section", () => {
     const status = makeStatus();
     const body = `hello\n\n<!-- git-stack:toc:start -->old<!-- git-stack:toc:end -->`;
     const next = upsertManagedToc(body, status);
-    expect(next).toContain("feature-a");
+    expect(next).toContain("[A](https://example.test/10)");
     expect(next).not.toContain("old");
   });
 
