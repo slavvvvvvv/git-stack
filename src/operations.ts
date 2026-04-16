@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { loadGlobalConfig, loadStackConfig } from "./config.js";
-import { getRepoConfigPath, writeTemplateConfig } from "./config.js";
+import { createDefaultRepoDefaults, loadGlobalConfig, loadStackConfig } from "./config.js";
+import { getRepoConfigPath, writeStackConfig, writeTemplateConfig } from "./config.js";
 import { closePullRequest, commentOnPullRequest, createOctokit, ensurePullRequests } from "./github.js";
 import {
+  branchExists,
   checkoutBranch,
   combineEdge,
+  createBranchFrom,
   createRepoContext,
   ensureCombinedBranch,
   getCurrentBranch,
@@ -346,5 +348,71 @@ export async function openConfigInEditor(cwd: string, env: NodeJS.ProcessEnv = p
     message: `Opened ${configPath} in ${editor}.`,
     warnings: [],
     operations: [`open-config:${configPath}`],
+  };
+}
+
+export async function createStack(cwd: string, branchNames: string[]): Promise<OperationResult> {
+  if (branchNames.length === 0) {
+    throw new Error("At least one branch name is required.");
+  }
+
+  const uniqueNames = new Set(branchNames);
+  if (uniqueNames.size !== branchNames.length) {
+    throw new Error("Branch names must be unique.");
+  }
+
+  const { git, repoPath } = await createRepoContext(cwd);
+  const currentBranch = await getCurrentBranch(git);
+  const trainName = branchNames[0] ?? "";
+
+  for (const branchName of branchNames) {
+    if (await branchExists(git, branchName)) {
+      throw new Error(`Branch "${branchName}" already exists.`);
+    }
+  }
+
+  const configPath = getRepoConfigPath(repoPath);
+  let defaults = createDefaultRepoDefaults();
+  let trains = [] as ReturnType<typeof loadStackConfig>["trains"];
+
+  if (await import("node:fs").then((mod) => mod.existsSync(configPath))) {
+    const loadedConfig = loadStackConfig(repoPath);
+    if (loadedConfig.trains.some((train) => train.name === trainName)) {
+      throw new Error(`Train "${trainName}" already exists in ${configPath}.`);
+    }
+    defaults = loadedConfig.defaults;
+    trains = loadedConfig.trains;
+  }
+
+  const operations: string[] = [];
+  let parentRef = currentBranch;
+  for (const branchName of branchNames) {
+    await createBranchFrom(git, branchName, parentRef);
+    operations.push(`create-branch:${branchName}<-${parentRef}`);
+    parentRef = branchName;
+  }
+
+  await checkoutBranch(git, trainName);
+
+  writeStackConfig(repoPath, {
+    defaults,
+    trains: [
+      ...trains,
+      {
+        name: trainName,
+        syncBase: currentBranch,
+        prTarget: currentBranch,
+        branches: branchNames.map((name) => ({ name, role: "normal" })),
+      },
+    ],
+  });
+
+  operations.push(`write-train:${trainName}`);
+
+  return {
+    ok: true,
+    message: `Created stack "${trainName}" from ${currentBranch}.`,
+    warnings: [],
+    operations,
   };
 }

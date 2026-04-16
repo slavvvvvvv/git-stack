@@ -5,6 +5,7 @@ import pkg from "../package.json" with { type: "json" };
 import {
   advanceTrain,
   checkoutTrainBranch,
+  createStack,
   ensureTrainPrs,
   initConfig,
   openConfigInEditor,
@@ -67,6 +68,13 @@ program
   .description("Open the repo .stack.yml in the configured editor")
   .action(async () => {
     await runWithOutput(openConfigInEditor(process.cwd()), program.opts().json ?? false);
+  });
+
+program
+  .command("create <branches...>")
+  .description("Create a new stack from the current branch and add it to .stack.yml")
+  .action(async (branches: string[]) => {
+    await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false);
   });
 
 program

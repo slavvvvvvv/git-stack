@@ -138,6 +138,10 @@ function mergeDefaults(globalDefaults: Partial<RepoDefaults> | undefined, repoDe
   };
 }
 
+export function createDefaultRepoDefaults(): RepoDefaults {
+  return repoDefaultsSchema.parse({});
+}
+
 export function getRepoConfigPath(repoPath: string): string {
   return path.join(repoPath, ".stack.yml");
 }
@@ -178,6 +182,34 @@ export function loadStackConfig(repoPath: string): StackConfig {
     defaults,
     trains,
   };
+}
+
+export function writeStackConfig(repoPath: string, config: StackConfig): void {
+  const repoConfigPath = getRepoConfigPath(repoPath);
+  const serialized = {
+    defaults: config.defaults,
+    trains: Object.fromEntries(
+      config.trains.map((train) => [
+        train.name,
+        {
+          syncBase: train.syncBase,
+          prTarget: train.prTarget,
+          branches: train.branches.map((branch) => {
+            if (branch.role === "combined") {
+              return {
+                name: branch.name,
+                role: branch.role,
+              };
+            }
+
+            return branch.name;
+          }),
+        },
+      ]),
+    ),
+  };
+
+  fs.writeFileSync(repoConfigPath, yaml.dump(serialized, { lineWidth: 100 }), "utf8");
 }
 
 export function writeTemplateConfig(targetPath: string): void {

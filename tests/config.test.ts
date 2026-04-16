@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadStackConfig, resolveCombinedBranch } from "../src/config.js";
+import { createDefaultRepoDefaults, loadStackConfig, resolveCombinedBranch, writeStackConfig } from "../src/config.js";
 import { getConfiguredEditor } from "../src/operations.js";
 
 function writeConfig(content: string): string {
@@ -51,5 +51,27 @@ trains:
     expect(getConfiguredEditor({ EDITOR: "nvim", VISUAL: "code -w" })).toBe("nvim");
     expect(getConfiguredEditor({ VISUAL: "code -w" })).toBe("code -w");
     expect(getConfiguredEditor({})).toBeNull();
+  });
+
+  it("writes config that can be loaded again", () => {
+    const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "git-stack-write-"));
+    writeStackConfig(repoPath, {
+      defaults: createDefaultRepoDefaults(),
+      trains: [
+        {
+          name: "demo",
+          syncBase: "main",
+          prTarget: "main",
+          branches: [
+            { name: "feature-a", role: "normal" },
+            { name: "combined", role: "combined" },
+          ],
+        },
+      ],
+    });
+
+    const config = loadStackConfig(repoPath);
+    expect(config.trains[0]?.name).toBe("demo");
+    expect(config.trains[0]?.branches[1]?.role).toBe("combined");
   });
 });

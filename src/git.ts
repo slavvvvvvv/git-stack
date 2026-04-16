@@ -106,6 +106,10 @@ export async function checkoutBranch(git: SimpleGit, branchName: string): Promis
   await git.checkout(branchName);
 }
 
+export async function createBranchFrom(git: SimpleGit, branchName: string, fromRef: string): Promise<void> {
+  await git.checkout(["-b", branchName, fromRef]);
+}
+
 export async function getHeadCommitMessage(git: SimpleGit, ref: string): Promise<{ title: string; body: string }> {
   const title = (await git.raw(["log", "--format=%s", "-n", "1", ref])).trim();
   const body = (await git.raw(["log", "--format=%b", "-n", "1", ref])).trim();

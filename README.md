@@ -137,6 +137,12 @@ git stack status
 git stack config
 ```
 
+5. Bootstrap a new stack from the current branch:
+
+```bash
+git stack create feature-a feature-b feature-c
+```
+
 ## Common Workflows
 
 ### Sync The Stack
@@ -212,6 +218,25 @@ Behavior:
 Arguments:
 
 - none
+
+### `git stack create <branches...>`
+
+Creates a new stack from the current branch and writes it into `.stack.yml`.
+
+Behavior:
+
+- uses the current branch as both `syncBase` and `prTarget`
+- creates the first named branch from the current branch
+- creates each later branch from the previous newly created branch
+- writes a new train named after the first branch argument
+- checks out the first created branch when finished
+- errors if any requested branch already exists
+- errors if a train with the first branch name already exists
+
+Arguments:
+
+- `<branches...>`
+  - ordered list of branch names to create as a stack
 
 ### `git stack status`
 
