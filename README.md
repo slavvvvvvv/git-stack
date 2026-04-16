@@ -11,8 +11,10 @@ It is designed as a more ergonomic successor to `pr-train`, with explicit subcom
 
 - [Summary](#summary)
 - [Quick Start Guide](#quick-start-guide)
-- [API Docs / CLI Args](#api-docs--cli-args)
+- [CLI Docs](#cli-docs)
+- [MCP Docs](#mcp-docs)
 - [Additional Info](#additional-info)
+- [Contribution](#contribution)
 
 ## Summary
 
@@ -161,7 +163,7 @@ git stack advance --close-merged-prs --comment-updated-prs "/retest"
 git stack mcp
 ```
 
-## API Docs / CLI Args
+## CLI Docs
 
 ## Global CLI Flags
 
@@ -303,7 +305,7 @@ Arguments:
 
 - none
 
-## MCP API
+## MCP Docs
 
 ## Transport
 
@@ -685,3 +687,81 @@ Test files:
 - multi-repo stacks are not implemented
 - live GitHub integration is not covered by end-to-end tests yet
 - some documented defaults are broader than the current test surface
+
+## Contribution
+
+## Development Setup
+
+Install dependencies and verify the current tree:
+
+```bash
+pnpm install
+pnpm build
+pnpm test
+```
+
+Useful scripts:
+
+- `pnpm build`
+- `pnpm clean`
+- `pnpm dev`
+- `pnpm mcp`
+- `pnpm test`
+- `pnpm test:watch`
+
+## Local CLI Install
+
+To install the CLI from this checkout so `git stack` resolves to your local build:
+
+```bash
+pnpm build
+npm link
+```
+
+That registers the package’s binaries globally for your user:
+
+- `git-stack`
+- `stack`
+
+After linking, verify the local checkout is being used:
+
+```bash
+git-stack --help
+stack --help
+```
+
+If your git installation is configured to discover `git-*` executables on your `PATH`, `git stack` should also work:
+
+```bash
+git stack --help
+```
+
+When you change the source, rebuild before rerunning:
+
+```bash
+pnpm build
+```
+
+To remove the local linked install later:
+
+```bash
+npm unlink -g git-stack
+```
+
+## Running Without Linking
+
+For local iteration without installing globally:
+
+```bash
+pnpm dev -- --help
+pnpm dev -- status
+pnpm mcp
+```
+
+This is useful when you want to exercise the CLI and MCP server directly from the repo without modifying your global environment.
+
+## Contributor Notes
+
+- Keep the CLI and MCP docs aligned with the real command surface in [src/cli.ts](/Users/slavko/git-stack/src/cli.ts:1) and [src/mcp.ts](/Users/slavko/git-stack/src/mcp.ts:1).
+- Prefer documenting config and argument behavior from implementation, not from intended future behavior.
+- Run `pnpm test` before committing docs that describe command or config semantics.
