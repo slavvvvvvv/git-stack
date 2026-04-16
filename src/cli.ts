@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
+import { installMcpIntoTarget, type McpInstallTarget } from "./install.js";
 import {
   advanceTrain,
   checkoutTrainBranch,
@@ -173,12 +174,24 @@ program
     await runWithOutput(checkoutTrainBranch(process.cwd(), options.train, selector), program.opts().json ?? false);
   });
 
-program
-  .command("mcp")
-  .description("Run the git-stack MCP server over stdio")
-  .action(async () => {
-    await startMcpServer(process.cwd());
+const mcp = program.command("mcp").description("Run the git-stack MCP server or manage client installs");
+
+mcp
+  .command("install")
+  .description("Install git-stack as an MCP server into a supported client")
+  .argument("<target>", "client to install into", (value: string) => {
+    if (["codex", "claude", "pi", "opencode"].includes(value)) {
+      return value as McpInstallTarget;
+    }
+    throw new Error(`Unsupported install target: ${value}`);
+  })
+  .action(async (target: McpInstallTarget) => {
+    await runWithOutput(installMcpIntoTarget(target), program.opts().json ?? false);
   });
+
+mcp.action(async () => {
+  await startMcpServer(process.cwd());
+});
 
 program.action(async () => {
   await runWithOutput(statusOperation(process.cwd()), program.opts().json ?? false);

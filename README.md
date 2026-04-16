@@ -183,6 +183,15 @@ git stack advance --close-merged-prs --comment-updated-prs "/retest"
 git stack mcp
 ```
 
+### Install Into Supported Clients
+
+```bash
+git stack mcp install codex
+git stack mcp install claude
+git stack mcp install opencode
+git stack mcp install pi
+```
+
 ## CLI Docs
 
 ## Global CLI Flags
@@ -373,6 +382,33 @@ Starts the MCP server over stdio.
 Arguments:
 
 - none
+
+### `git stack mcp install <target>`
+
+Installs the git-stack MCP server into a supported client.
+
+Supported targets:
+
+- `codex`
+- `claude`
+- `opencode`
+- `pi`
+
+Behavior:
+
+- `codex`
+  - runs the native `codex mcp add` command using the built `dist/cli.js`
+- `claude`
+  - runs the native `claude mcp add --scope user` command using the built `dist/cli.js`
+- `opencode`
+  - writes `~/.config/opencode/opencode.json` with a local MCP entry
+- `pi`
+  - returns an unsupported result because the installed Pi agent explicitly documents that it does not support MCP
+
+Arguments:
+
+- `<target>`
+  - one of `codex`, `claude`, `opencode`, or `pi`
 
 ## MCP Docs
 
