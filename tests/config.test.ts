@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { createDefaultRepoDefaults, loadStackConfig, resolveCombinedBranch, writeStackConfig } from "../src/config.js";
+import { createDefaultRepoDefaults, getTemplatePath, loadStackConfig, resolveCombinedBranch, writeStackConfig } from "../src/config.js";
 import { getConfiguredEditor } from "../src/operations.js";
 
 function writeConfig(content: string): string {
@@ -98,5 +98,11 @@ trains:
     const combinedIndex = written.indexOf("name: combined");
     expect(featureIndex).toBeGreaterThan(-1);
     expect(combinedIndex).toBeGreaterThan(featureIndex);
+  });
+
+  it("resolves the bundled template path from the package", () => {
+    const templatePath = getTemplatePath();
+    expect(fs.existsSync(templatePath)).toBe(true);
+    expect(path.basename(templatePath)).toBe("stack.yml");
   });
 });

@@ -213,9 +213,7 @@ export function writeStackConfig(repoPath: string, config: StackConfig): void {
 }
 
 export function writeTemplateConfig(targetPath: string): void {
-  const templatePath = path.resolve(process.cwd(), "templates", "stack.yml");
-  const fallbackTemplatePath = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "templates", "stack.yml");
-  const sourcePath = fs.existsSync(templatePath) ? templatePath : fallbackTemplatePath;
+  const sourcePath = getTemplatePath();
   fs.copyFileSync(sourcePath, targetPath);
 }
 
