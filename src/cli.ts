@@ -11,6 +11,7 @@ import {
   helpOperation,
   initConfig,
   openConfigInEditor,
+  pushBranchOntoTrain,
   statusOperation,
   syncTrain,
   validateRepo,
@@ -78,6 +79,13 @@ program
   .description("Create a new stack from the current branch and add it to .stack.yml")
   .action(async (branches: string[]) => {
     await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false);
+  });
+
+program
+  .command("push <train>")
+  .description("Add the current branch onto an existing train by name")
+  .action(async (train: string) => {
+    await runWithOutput(pushBranchOntoTrain(process.cwd(), train), program.opts().json ?? false);
   });
 
 program

@@ -418,6 +418,58 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
   };
 }
 
+export async function pushBranchOntoTrain(cwd: string, trainName: string): Promise<OperationResult> {
+  const { git, repoPath } = await createRepoContext(cwd);
+  const config = loadStackConfig(repoPath);
+  const currentBranch = await getCurrentBranch(git);
+  const targetTrain = config.trains.find((train) => train.name === trainName);
+
+  if (!targetTrain) {
+    throw new Error(`Train "${trainName}" was not found.`);
+  }
+
+  const existingTrainWithBranch = config.trains.find((train) =>
+    train.branches.some((branch) => branch.name === currentBranch),
+  );
+  if (existingTrainWithBranch) {
+    if (existingTrainWithBranch.name === trainName) {
+      throw new Error(`Branch "${currentBranch}" is already part of train "${trainName}".`);
+    }
+    throw new Error(
+      `Branch "${currentBranch}" is already part of train "${existingTrainWithBranch.name}" and cannot be pushed onto "${trainName}".`,
+    );
+  }
+
+  const combinedIndex = targetTrain.branches.findIndex((branch) => branch.role === "combined");
+  const nextBranches = [...targetTrain.branches];
+  if (combinedIndex >= 0) {
+    nextBranches.splice(combinedIndex, 0, { name: currentBranch, role: "normal" });
+  } else {
+    nextBranches.push({ name: currentBranch, role: "normal" });
+  }
+
+  writeStackConfig(repoPath, {
+    defaults: config.defaults,
+    trains: config.trains.map((train) => {
+      if (train.name !== trainName) {
+        return train;
+      }
+
+      return {
+        ...train,
+        branches: nextBranches,
+      };
+    }),
+  });
+
+  return {
+    ok: true,
+    message: `Added branch "${currentBranch}" to train "${trainName}".`,
+    warnings: [],
+    operations: [`add-branch:${currentBranch}->${trainName}`],
+  };
+}
+
 export async function helpOperation(topic?: string, surface: HelpSurface = "all"): Promise<OperationResult> {
   const help = renderHelp(topic, surface);
   return {

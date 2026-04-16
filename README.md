@@ -143,7 +143,13 @@ git stack config
 git stack create feature-a feature-b feature-c
 ```
 
-6. Get built-in guidance for a topic:
+6. Add the current branch onto an existing train:
+
+```bash
+git stack push feature-a
+```
+
+7. Get built-in guidance for a topic:
 
 ```bash
 git stack help overview
@@ -254,6 +260,23 @@ Arguments:
 
 - `<branches...>`
   - ordered list of branch names to create as a stack
+
+### `git stack push <train>`
+
+Adds the current checked-out branch onto an existing train.
+
+Behavior:
+
+- resolves the current branch from git
+- appends the current branch to the named train
+- inserts the branch before the combined branch if the train has one
+- errors if the current branch is already present in any train
+- errors if the named train does not exist
+
+Arguments:
+
+- `<train>`
+  - existing train name to update
 
 ### `git stack help [topic]`
 

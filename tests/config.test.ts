@@ -74,4 +74,29 @@ trains:
     expect(config.trains[0]?.name).toBe("demo");
     expect(config.trains[0]?.branches[1]?.role).toBe("combined");
   });
+
+  it("writes normal branches before combined branches", () => {
+    const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "git-stack-write-order-"));
+    writeStackConfig(repoPath, {
+      defaults: createDefaultRepoDefaults(),
+      trains: [
+        {
+          name: "demo",
+          syncBase: "main",
+          prTarget: "main",
+          branches: [
+            { name: "feature-a", role: "normal" },
+            { name: "feature-b", role: "normal" },
+            { name: "combined", role: "combined" },
+          ],
+        },
+      ],
+    });
+
+    const written = fs.readFileSync(path.join(repoPath, ".stack.yml"), "utf8");
+    const featureIndex = written.indexOf("- feature-b");
+    const combinedIndex = written.indexOf("name: combined");
+    expect(featureIndex).toBeGreaterThan(-1);
+    expect(combinedIndex).toBeGreaterThan(featureIndex);
+  });
 });
