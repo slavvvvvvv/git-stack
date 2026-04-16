@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { activeBranches, getMergedStatusBaseRef, normalActiveBranches } from "../src/train.js";
-import type { TrainDefinition, TrainStatus } from "../src/types.js";
+import { activeBranches, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/train.js";
+import type { BranchStatus, TrainDefinition, TrainStatus } from "../src/types.js";
 
 const trainDefinition: TrainDefinition = {
   name: "demo",
@@ -55,6 +55,33 @@ const status: TrainStatus = {
 describe("active branch helpers", () => {
   it("uses prTarget rather than syncBase for merged-status ancestry", () => {
     expect(getMergedStatusBaseRef(trainDefinition)).toBe("main");
+  });
+
+  it("treats an open PR as not merged even if ancestry said merged", () => {
+    const branch: BranchStatus = {
+      name: "feature-a",
+      role: "normal",
+      index: 0,
+      isCurrent: false,
+      isMerged: true,
+      isActive: false,
+      existsLocally: true,
+      pr: {
+        number: 10,
+        url: "https://example.test/10",
+        state: "open",
+        isDraft: false,
+        title: "A",
+        body: "",
+        baseBranch: "main",
+        headBranch: "feature-a",
+        mergedAt: null,
+      },
+    };
+
+    const reconciled = reconcileBranchStatusWithPr(branch);
+    expect(reconciled.isMerged).toBe(false);
+    expect(reconciled.isActive).toBe(true);
   });
 
   it("keeps combined branch in active list", () => {

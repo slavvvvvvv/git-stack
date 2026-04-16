@@ -45,6 +45,26 @@ export function getMergedStatusBaseRef(train: TrainDefinition): string {
   return train.prTarget;
 }
 
+export function reconcileBranchStatusWithPr(branch: BranchStatus): BranchStatus {
+  if (!branch.pr) {
+    return branch;
+  }
+
+  if (branch.pr.mergedAt) {
+    return {
+      ...branch,
+      isMerged: true,
+      isActive: false,
+    };
+  }
+
+  return {
+    ...branch,
+    isMerged: false,
+    isActive: true,
+  };
+}
+
 async function buildBranchStatus(
   git: SimpleGit,
   repoPath: string,
@@ -88,12 +108,13 @@ export async function getTrainStatus(cwd: string, trainName?: string): Promise<T
     const { octokit, coords } = await createOctokit(git, config.defaults, globalConfig.github?.token);
     const ownerResponse = await octokit.repos.get({ owner: coords.owner, repo: coords.repo });
     const owner = ownerResponse.data.owner.login;
-    for (const branch of branches) {
-      branch.pr = await findPullRequestByHead(octokit, coords, owner, branch.name);
-      if (branch.pr?.mergedAt) {
-        branch.isMerged = true;
-        branch.isActive = false;
+    for (let index = 0; index < branches.length; index += 1) {
+      const branch = branches[index];
+      if (!branch) {
+        continue;
       }
+      branch.pr = await findPullRequestByHead(octokit, coords, owner, branch.name);
+      branches[index] = reconcileBranchStatusWithPr(branch);
     }
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : String(error));
