@@ -8,12 +8,12 @@ defaults:
     draft: false
     printUrls: false
     commentOnUpdate:
-    combinedTitleTemplate: "{{train.name}}"
+    combinedTitleTemplate: "{{stack.name}}"
   lifecycle:
     keepMergedInToc: true
     closeMergedPrs: false
 
-trains:
+stacks:
   example-stack:
     syncBase: main
     prTarget: main

@@ -86,7 +86,7 @@ export async function syncTrain(cwd: string, trainName: string | undefined, opti
 
   return {
     ok: true,
-    message: "Train synced.",
+    message: "Stack synced.",
     warnings: status.warnings,
     operations,
     status: {
@@ -227,7 +227,7 @@ export async function advanceTrain(
 
   return {
     ok: true,
-    message: "Train advanced.",
+    message: "Stack advanced.",
     warnings: updatedStatus.warnings,
     operations,
     status: updatedStatus,
@@ -284,9 +284,9 @@ export async function listTrainsOperation(cwd: string): Promise<OperationResult>
   const config = loadStackConfig(repoPath);
   return {
     ok: true,
-    message: "Trains listed.",
+    message: "Stacks listed.",
     warnings: [],
-    operations: config.trains.map((train) => `train:${train.name}`),
+    operations: config.trains.map((train) => `stack:${train.name}`),
   };
 }
 
@@ -379,7 +379,7 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
   if (await import("node:fs").then((mod) => mod.existsSync(configPath))) {
     const loadedConfig = loadStackConfig(repoPath);
     if (loadedConfig.trains.some((train) => train.name === trainName)) {
-      throw new Error(`Train "${trainName}" already exists in ${configPath}.`);
+      throw new Error(`Stack "${trainName}" already exists in ${configPath}.`);
     }
     defaults = loadedConfig.defaults;
     trains = loadedConfig.trains;
@@ -408,7 +408,7 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
     ],
   });
 
-  operations.push(`write-train:${trainName}`);
+  operations.push(`write-stack:${trainName}`);
 
   return {
     ok: true,
@@ -425,7 +425,7 @@ export async function pushBranchOntoTrain(cwd: string, trainName: string): Promi
   const targetTrain = config.trains.find((train) => train.name === trainName);
 
   if (!targetTrain) {
-    throw new Error(`Train "${trainName}" was not found.`);
+    throw new Error(`Stack "${trainName}" was not found.`);
   }
 
   const existingTrainWithBranch = config.trains.find((train) =>
@@ -433,10 +433,10 @@ export async function pushBranchOntoTrain(cwd: string, trainName: string): Promi
   );
   if (existingTrainWithBranch) {
     if (existingTrainWithBranch.name === trainName) {
-      throw new Error(`Branch "${currentBranch}" is already part of train "${trainName}".`);
+      throw new Error(`Branch "${currentBranch}" is already part of stack "${trainName}".`);
     }
     throw new Error(
-      `Branch "${currentBranch}" is already part of train "${existingTrainWithBranch.name}" and cannot be pushed onto "${trainName}".`,
+      `Branch "${currentBranch}" is already part of stack "${existingTrainWithBranch.name}" and cannot be added to "${trainName}".`,
     );
   }
 
@@ -464,9 +464,41 @@ export async function pushBranchOntoTrain(cwd: string, trainName: string): Promi
 
   return {
     ok: true,
-    message: `Added branch "${currentBranch}" to train "${trainName}".`,
+    message: `Added branch "${currentBranch}" to stack "${trainName}".`,
     warnings: [],
     operations: [`add-branch:${currentBranch}->${trainName}`],
+  };
+}
+
+export async function pushTrain(
+  cwd: string,
+  trainName: string | undefined,
+  options: SyncOptions & EnsurePrsOptions,
+): Promise<OperationResult> {
+  const syncResult = await syncTrain(cwd, trainName, {
+    strategy: options.strategy,
+    push: true,
+    force: options.force,
+    includeMerged: options.includeMerged,
+    dryRun: options.dryRun,
+  });
+
+  if (!syncResult.ok) {
+    return syncResult;
+  }
+
+  const ensureResult = await ensureTrainPrs(cwd, trainName, {
+    draft: options.draft,
+    printUrls: options.printUrls,
+    dryRun: options.dryRun,
+  });
+
+  return {
+    ok: ensureResult.ok,
+    message: "Stack pushed and PRs ensured with stack tables in the PR descriptions.",
+    warnings: [...syncResult.warnings, ...ensureResult.warnings],
+    operations: [...(syncResult.operations ?? []), ...(ensureResult.operations ?? [])],
+    status: ensureResult.status ?? syncResult.status,
   };
 }
 

@@ -45,7 +45,7 @@ export async function ensureCombinedBranch(git: SimpleGit, train: TrainDefinitio
 
   const branchBeforeCombined = train.branches.at(-2);
   if (!branchBeforeCombined) {
-    throw new Error(`Train "${train.name}" does not have a source branch for combined branch "${combinedBranch.name}".`);
+    throw new Error(`Stack "${train.name}" does not have a source branch for combined branch "${combinedBranch.name}".`);
   }
 
   await git.branch([combinedBranch.name, branchBeforeCombined.name]);

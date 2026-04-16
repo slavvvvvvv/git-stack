@@ -23,7 +23,7 @@ export async function resolveTrain(git: SimpleGit, trainName: string | undefined
   if (trainName) {
     const train = findTrainByName(config, trainName);
     if (!train) {
-      throw new Error(`Train "${trainName}" not found.`);
+      throw new Error(`Stack "${trainName}" not found.`);
     }
 
     return { train, config, currentBranch };
@@ -31,7 +31,7 @@ export async function resolveTrain(git: SimpleGit, trainName: string | undefined
 
   const resolved = config.trains.find((train) => train.branches.some((branch) => branch.name === currentBranch));
   if (!resolved) {
-    throw new Error(`Current branch "${currentBranch}" is not part of any configured train.`);
+    throw new Error(`Current branch "${currentBranch}" is not part of any configured stack.`);
   }
 
   return {

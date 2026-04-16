@@ -1,5 +1,5 @@
 {
-  "name": "git-stack",
+  "name": "git-cli-stack",
   "version": "0.1.0",
   "description": "Manage stacked pull requests with a git CLI and MCP server.",
   "type": "module",

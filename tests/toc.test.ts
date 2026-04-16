@@ -81,6 +81,8 @@ describe("TOC rendering", () => {
     expect(toc).toContain("### Merged");
     expect(toc).toContain("feature-a");
     expect(toc).toContain("feature-b");
+    expect(toc).toContain("https://example.test/10");
+    expect(toc).toContain("https://example.test/11");
   });
 
   it("replaces an existing managed section", () => {
@@ -89,5 +91,12 @@ describe("TOC rendering", () => {
     const next = upsertManagedToc(body, status);
     expect(next).toContain("feature-a");
     expect(next).not.toContain("old");
+  });
+
+  it("appends the managed stack table to a plain body", () => {
+    const next = upsertManagedToc("existing body", makeStatus());
+    expect(next).toContain("existing body");
+    expect(next).toContain("<!-- git-stack:toc:start -->");
+    expect(next).toContain("https://example.test/10");
   });
 });

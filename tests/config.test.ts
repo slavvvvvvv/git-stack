@@ -16,7 +16,7 @@ describe("config parsing", () => {
     const repoPath = writeConfig(`
 defaults:
   remote: upstream
-trains:
+stacks:
   demo:
     syncBase: main
     prTarget: main
@@ -34,7 +34,7 @@ trains:
 
   it("rejects non-final combined branch", () => {
     const repoPath = writeConfig(`
-trains:
+stacks:
   demo:
     syncBase: main
     prTarget: main

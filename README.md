@@ -20,9 +20,9 @@ It is designed as a more ergonomic successor to `pr-train`, with explicit subcom
 
 ## What It Does
 
-`git-stack` models an ordered train of branches that should be merged or rebased in sequence. It can:
+`git-stack` models an ordered stack of branches that should be merged or rebased in sequence. It can:
 
-- resolve the current train from the checked-out branch
+- resolve the current stack from the checked-out branch
 - sync branch content down the stack
 - create or update GitHub pull requests and keep bases aligned
 - maintain a managed stack table of contents inside PR bodies
@@ -44,7 +44,7 @@ It is responsible for:
 The CLI delegates to:
 
 - [src/operations.ts](/Users/slavko/git-stack/src/operations.ts:1) for command orchestration
-- [src/train.ts](/Users/slavko/git-stack/src/train.ts:1) for train resolution and status assembly
+- [src/train.ts](/Users/slavko/git-stack/src/train.ts:1) for stack resolution and status assembly
 - [src/git.ts](/Users/slavko/git-stack/src/git.ts:1) for git helpers
 - [src/github.ts](/Users/slavko/git-stack/src/github.ts:1) for GitHub integration
 
@@ -114,7 +114,7 @@ defaults:
   sync:
     strategy: merge
 
-trains:
+stacks:
   example-stack:
     syncBase: main
     prTarget: main
@@ -125,7 +125,7 @@ trains:
         role: combined
 ```
 
-3. Check the resolved train:
+3. Check the resolved stack:
 
 ```bash
 git stack status
@@ -143,13 +143,20 @@ git stack config
 git stack create feature-a feature-b feature-c
 ```
 
-6. Add the current branch onto an existing train:
+6. Add the current branch onto an existing stack definition:
 
 ```bash
-git stack push feature-a
+git stack add feature-a
 ```
 
-7. Get built-in guidance for a topic:
+7. Push the current stack and create stacked PRs:
+
+```bash
+git stack push
+git stack push --draft
+```
+
+8. Get built-in guidance for a topic:
 
 ```bash
 git stack help overview
@@ -251,32 +258,54 @@ Behavior:
 - uses the current branch as both `syncBase` and `prTarget`
 - creates the first named branch from the current branch
 - creates each later branch from the previous newly created branch
-- writes a new train named after the first branch argument
+- writes a new stack named after the first branch argument
 - checks out the first created branch when finished
 - errors if any requested branch already exists
-- errors if a train with the first branch name already exists
+- errors if a stack with the first branch name already exists
 
 Arguments:
 
 - `<branches...>`
   - ordered list of branch names to create as a stack
 
-### `git stack push <train>`
+### `git stack add <stack>`
 
-Adds the current checked-out branch onto an existing train.
+Adds the current checked-out branch onto an existing stack.
 
 Behavior:
 
 - resolves the current branch from git
-- appends the current branch to the named train
-- inserts the branch before the combined branch if the train has one
-- errors if the current branch is already present in any train
-- errors if the named train does not exist
+- appends the current branch to the named stack
+- inserts the branch before the combined branch if the stack has one
+- errors if the current branch is already present in any stack
+- errors if the named stack does not exist
 
 Arguments:
 
-- `<train>`
-  - existing train name to update
+- `<stack>`
+  - existing stack name to update
+
+### `git stack push`
+
+Pushes the current stack branches to the remote and creates or updates stacked PRs.
+
+Behavior:
+
+- syncs the stack in sequence
+- pushes stack branches to the configured remote
+- creates or updates PRs in order so each PR points at the previous branch in the stack
+- ensures the managed stack TOC with all stack PR links is present in the PR descriptions
+- supports draft/ready publishing
+
+Arguments:
+
+- `--stack <name>`
+- `--strategy <merge|rebase>`
+- `--force`
+- `--include-merged`
+- `--draft`
+- `--ready`
+- `--print-urls`
 
 ### `git stack help [topic]`
 
@@ -295,35 +324,35 @@ Arguments:
 
 ### `git stack status`
 
-Shows the resolved train status.
+Shows the resolved stack status.
 
 Behavior:
 
-- resolves from the current branch if `--train` is omitted
+- resolves from the current branch if `--stack` is omitted
 - includes branch order, active/merged flags, combined branch marker, PR metadata when available, and warnings
 
 Arguments:
 
-- `--train <name>`
-  - resolve a specific train explicitly
+- `--stack <name>`
+  - resolve a specific stack explicitly
 
 ### `git stack validate`
 
-Validates repo/train state.
+Validates repo/stack state.
 
 Validation includes:
 
-- train resolution
+- stack resolution
 - branch existence checks
 - GitHub lookup warnings when PR metadata cannot be loaded
 
 Arguments:
 
-- `--train <name>`
+- `--stack <name>`
 
 ### `git stack sync`
 
-Synchronizes the train by applying each branch onto the next branch.
+Synchronizes the stack by applying each branch onto the next branch.
 
 Behavior:
 
@@ -334,7 +363,7 @@ Behavior:
 
 Arguments:
 
-- `--train <name>`
+- `--stack <name>`
 - `--strategy <merge|rebase>`
 - `--push`
 - `--force`
@@ -356,7 +385,7 @@ Behavior:
 
 Arguments:
 
-- `--train <name>`
+- `--stack <name>`
 - `--draft`
 - `--ready`
   - force non-draft mode for this run
@@ -377,7 +406,7 @@ Behavior:
 
 Arguments:
 
-- `--train <name>`
+- `--stack <name>`
 - `--push`
 - `--force`
 - `--close-merged-prs`
@@ -385,7 +414,7 @@ Arguments:
 
 ### `git stack checkout <selector>`
 
-Checks out a train branch.
+Checks out a stack branch.
 
 Supported selector forms:
 
@@ -396,7 +425,7 @@ Supported selector forms:
 Arguments:
 
 - `<selector>`
-- `--train <name>`
+- `--stack <name>`
 
 ### `git stack mcp`
 
@@ -458,12 +487,12 @@ Payload fields:
 
 ### `stack://repo/current/trains`
 
-Returns configured train identifiers for the current repo.
+Returns configured stack identifiers for the current repo.
 
 Current payload shape:
 
 - `operations`
-  - values like `train:<name>`
+  - values like `stack:<name>`
 
 ### `stack://repo/current/help`
 
@@ -488,7 +517,7 @@ Arguments:
 
 ### `stack_list_trains`
 
-Lists configured trains.
+Lists configured stacks.
 
 Arguments:
 
@@ -496,7 +525,7 @@ Arguments:
 
 ### `stack_get_train`
 
-Returns computed train status.
+Returns computed stack status.
 
 Arguments:
 
@@ -554,7 +583,7 @@ Arguments:
 
 ### `stack_checkout_branch`
 
-Checks out a branch from the resolved train.
+Checks out a branch from the resolved stack.
 
 Arguments:
 
@@ -604,12 +633,12 @@ defaults:
     draft: false
     printUrls: false
     commentOnUpdate:
-    combinedTitleTemplate: "{{train.name}}"
+    combinedTitleTemplate: "{{stack.name}}"
   lifecycle:
     keepMergedInToc: true
     closeMergedPrs: false
 
-trains:
+stacks:
   my-stack:
     syncBase: main
     prTarget: main
@@ -685,7 +714,7 @@ Template for combined branch PR titles.
 
 Supported token:
 
-- `{{train.name}}`
+- `{{stack.name}}`
 
 ### `defaults.lifecycle.keepMergedInToc`
 
@@ -703,7 +732,7 @@ Type:
 
 - `boolean`
 
-### `trains.<name>.syncBase`
+### `stacks.<name>.syncBase`
 
 The branch used as the sync and advancement base.
 
@@ -713,11 +742,11 @@ Used for:
 - merged detection
 - rebasing the next active head during `advance`
 
-### `trains.<name>.prTarget`
+### `stacks.<name>.prTarget`
 
 The base branch for the first active PR and the combined PR.
 
-### `trains.<name>.branches`
+### `stacks.<name>.branches`
 
 Ordered branch list defining stack flow.
 

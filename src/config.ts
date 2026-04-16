@@ -63,7 +63,8 @@ const trainSchema = z.object({
 
 const stackConfigSchema = z.object({
   defaults: z.unknown().optional(),
-  trains: z.record(z.string().trim().min(1), trainSchema),
+  stacks: z.record(z.string().trim().min(1), trainSchema).optional(),
+  trains: z.record(z.string().trim().min(1), trainSchema).optional(),
 });
 
 const globalConfigSchema = z.object({
@@ -176,7 +177,11 @@ export function loadStackConfig(repoPath: string): StackConfig {
   const globalConfig = loadGlobalConfig();
   const parsed = stackConfigSchema.parse(parseYamlFile(repoConfigPath));
   const defaults = mergeDefaults(globalConfig.defaults, parsed.defaults as Partial<RepoDefaults> | undefined);
-  const trains = Object.entries(parsed.trains).map(([name, train]) => normalizeTrain(name, train));
+  const rawStacks = parsed.stacks ?? parsed.trains;
+  if (!rawStacks || Object.keys(rawStacks).length === 0) {
+    throw new Error(`Config file at ${repoConfigPath} does not define any stacks.`);
+  }
+  const trains = Object.entries(rawStacks).map(([name, train]) => normalizeTrain(name, train));
 
   return {
     defaults,
@@ -188,7 +193,7 @@ export function writeStackConfig(repoPath: string, config: StackConfig): void {
   const repoConfigPath = getRepoConfigPath(repoPath);
   const serialized = {
     defaults: config.defaults,
-    trains: Object.fromEntries(
+    stacks: Object.fromEntries(
       config.trains.map((train) => [
         train.name,
         {

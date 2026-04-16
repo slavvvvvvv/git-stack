@@ -25,6 +25,8 @@ const helpTopics: HelpTopicEntry[] = [
     summary: "Understand the local command-line workflow.",
     details: [
       "Use `git stack create ...` to bootstrap a new stack from the current branch.",
+      "Use `git stack add <stack>` to append the current branch to an existing stack definition.",
+      "Use `git stack push` to push branches and create chained pull requests for the current stack.",
       "Use `git stack config` to open `.stack.yml` in `EDITOR` or `VISUAL`.",
       "Use `git stack status`, `sync`, `prs ensure`, and `advance` to inspect and operate on the stack lifecycle.",
       "Use `git stack mcp` when you want an MCP client to access the repo through structured tools.",
@@ -36,7 +38,7 @@ const helpTopics: HelpTopicEntry[] = [
     summary: "Understand the MCP server surface.",
     details: [
       "Start the server with `git stack mcp`.",
-      "Resources expose cached state and train inventory.",
+      "Resources expose cached state and stack inventory.",
       "Tools expose validation, status, sync, PR creation, stack advancement, checkout, and help.",
       "Use the MCP help tool when an agent needs guided explanations without shelling out to README text.",
     ],
@@ -46,10 +48,10 @@ const helpTopics: HelpTopicEntry[] = [
     surfaces: ["cli", "all"],
     summary: "Understand how `git stack create` bootstraps a new stack.",
     details: [
-      "The current checked-out branch becomes both `syncBase` and `prTarget` for the new train.",
+      "The current checked-out branch becomes both `syncBase` and `prTarget` for the new stack.",
       "Each provided branch is created in order, with each branch based on the previous one.",
-      "The train name is the first branch argument.",
-      "The command writes the train into `.stack.yml` and checks out the first created branch.",
+      "The stack name is the first branch argument.",
+      "The command writes the stack into `.stack.yml` and checks out the first created branch.",
     ],
   },
   {
@@ -57,10 +59,21 @@ const helpTopics: HelpTopicEntry[] = [
     surfaces: ["cli", "mcp", "all"],
     summary: "Understand how stack synchronization works.",
     details: [
-      "Sync walks the train in order and applies each branch onto the next branch.",
+      "Sync walks the stack in order and applies each branch onto the next branch.",
       "Merge and rebase are both supported.",
       "Already-satisfied ancestry edges are skipped.",
-      "A configured combined branch is created if missing and then kept at the tail of the train.",
+      "A configured combined branch is created if missing and then kept at the tail of the stack.",
+    ],
+  },
+  {
+    topic: "push",
+    surfaces: ["cli", "all"],
+    summary: "Understand how `git stack push` publishes a stacked stack.",
+    details: [
+      "`git stack push` first syncs and pushes the stack branches to the remote.",
+      "It then creates or updates the stacked pull requests in sequence, so each PR targets the previous branch.",
+      "The managed stack TOC with all PR links is written into each PR body.",
+      "Use `--draft` or `--ready` to control draft status while publishing.",
     ],
   },
   {
@@ -92,7 +105,7 @@ const helpTopics: HelpTopicEntry[] = [
     details: [
       "Repo-local config lives in `.stack.yml`.",
       "Optional global defaults and GitHub token fallback live in `~/.config/git-stack/config.yml`.",
-      "Each train declares `syncBase`, `prTarget`, and an ordered branch list.",
+      "Each stack declares `syncBase`, `prTarget`, and an ordered branch list.",
       "A combined branch is optional, but if present it must be the final branch.",
     ],
   },

@@ -99,6 +99,10 @@ function mapPr(pr: {
   };
 }
 
+function renderCombinedTitle(template: string, stackName: string): string {
+  return template.replaceAll("{{stack.name}}", stackName).replaceAll("{{train.name}}", stackName);
+}
+
 export async function findPullRequestByHead(
   octokit: Octokit,
   coords: RepoCoordinates,
@@ -148,7 +152,7 @@ export async function ensurePullRequests(
     const commitMessage =
       branch.name === combinedBranch
         ? {
-            title: defaults.prs.combinedTitleTemplate.replace("{{train.name}}", train.name),
+            title: renderCombinedTitle(defaults.prs.combinedTitleTemplate, train.name),
             body: "",
           }
         : await getHeadCommitMessage(git, branch.name);
