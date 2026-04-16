@@ -1,0 +1,24 @@
+defaults:
+  remote: origin
+  sync:
+    strategy: merge
+  github:
+    host: github.com
+  prs:
+    draft: false
+    printUrls: false
+    commentOnUpdate:
+    combinedTitleTemplate: "{{train.name}}"
+  lifecycle:
+    keepMergedInToc: true
+    closeMergedPrs: false
+
+trains:
+  example-stack:
+    syncBase: main
+    prTarget: main
+    branches:
+      - feature-a
+      - feature-b
+      - name: integration
+        role: combined

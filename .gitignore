@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.vitest-tmp/
+
+.DS_Store
+*.log
+
+.stack.yml
+.stack.local.yml
+
+.serena/project.local.yml
+
+.env
+.env.*
