@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createDefaultRepoDefaults, loadGlobalConfig, loadStackConfig } from "./config.js";
 import { getRepoConfigPath, writeStackConfig, writeTemplateConfig } from "./config.js";
 import { closePullRequest, commentOnPullRequest, createOctokit, ensurePullRequests } from "./github.js";
+import { renderHelp, type HelpSurface } from "./help.js";
 import {
   branchExists,
   checkoutBranch,
@@ -414,5 +415,15 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
     message: `Created stack "${trainName}" from ${currentBranch}.`,
     warnings: [],
     operations,
+  };
+}
+
+export async function helpOperation(topic?: string, surface: HelpSurface = "all"): Promise<OperationResult> {
+  const help = renderHelp(topic, surface);
+  return {
+    ok: !help.message.startsWith("Unknown help topic"),
+    message: help.message,
+    warnings: [],
+    operations: help.lines,
   };
 }

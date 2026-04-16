@@ -5,6 +5,7 @@ import {
   advanceTrain,
   checkoutTrainBranch,
   ensureTrainPrs,
+  helpOperation,
   listTrainsOperation,
   statusOperation,
   syncTrain,
@@ -57,6 +58,27 @@ export async function startMcpServer(cwd: string): Promise<void> {
       ],
     };
   });
+
+  server.resource("stack-help", "stack://repo/current/help", async () => {
+    const result = await helpOperation(undefined, "mcp");
+    return {
+      contents: [
+        {
+          uri: "stack://repo/current/help",
+          mimeType: "application/json",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  });
+
+  server.tool(
+    "stack_help",
+    {
+      topic: z.string().optional(),
+    },
+    async ({ topic }) => normalizeResult(await helpOperation(topic, "mcp")),
+  );
 
   server.tool(
     "stack_list_trains",

@@ -7,6 +7,7 @@ import {
   checkoutTrainBranch,
   createStack,
   ensureTrainPrs,
+  helpOperation,
   initConfig,
   openConfigInEditor,
   statusOperation,
@@ -54,6 +55,7 @@ async function runWithOutput(action: Promise<OperationResult>, asJson: boolean):
 
 const program = new Command();
 program.name("git stack").version(pkg.version);
+program.addHelpCommand(false);
 program.option("--json", "print JSON output");
 
 program
@@ -75,6 +77,13 @@ program
   .description("Create a new stack from the current branch and add it to .stack.yml")
   .action(async (branches: string[]) => {
     await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false);
+  });
+
+program
+  .command("help [topic]")
+  .description("Explain how git-stack works for a given topic")
+  .action(async (topic?: string) => {
+    await runWithOutput(helpOperation(topic, "cli"), program.opts().json ?? false);
   });
 
 program

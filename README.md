@@ -143,6 +143,14 @@ git stack config
 git stack create feature-a feature-b feature-c
 ```
 
+6. Get built-in guidance for a topic:
+
+```bash
+git stack help overview
+git stack help create
+git stack help mcp
+```
+
 ## Common Workflows
 
 ### Sync The Stack
@@ -237,6 +245,21 @@ Arguments:
 
 - `<branches...>`
   - ordered list of branch names to create as a stack
+
+### `git stack help [topic]`
+
+Shows built-in guidance about how git-stack works.
+
+Behavior:
+
+- without a topic, prints available help topics
+- with a topic, prints focused guidance for that workflow or subsystem
+- uses the same shared help registry exposed through the MCP server
+
+Arguments:
+
+- `[topic]`
+  - optional topic such as `overview`, `cli`, `mcp`, `create`, `sync`, `prs`, `advance`, or `config`
 
 ### `git stack status`
 
@@ -383,7 +406,26 @@ Current payload shape:
 - `operations`
   - values like `train:<name>`
 
+### `stack://repo/current/help`
+
+Returns built-in MCP help content.
+
+Payload shape:
+
+- `ok`
+- `message`
+- `warnings`
+- `operations`
+
 ## Tools
+
+### `stack_help`
+
+Returns built-in help content for MCP consumers.
+
+Arguments:
+
+- `topic?: string`
 
 ### `stack_list_trains`
 
