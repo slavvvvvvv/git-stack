@@ -80,9 +80,10 @@ describe("TOC rendering", () => {
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
     expect(toc).toContain("|  | Title/Link | Viewing? |");
-    expect(toc).toContain("#1a7f37");
-    expect(toc).toContain("#8250df");
-    expect(toc).toContain('[A](https://example.test/10) | <svg');
+    expect(toc).toContain("data:image/svg+xml;utf8,");
+    expect(toc).toContain('alt="open"');
+    expect(toc).toContain('alt="merged"');
+    expect(toc).toContain('[A](https://example.test/10) | <img');
     expect(toc).toContain('[B](https://example.test/11) |  |');
     expect(toc).toContain("|  | No PR |  |");
   });
@@ -104,8 +105,8 @@ describe("TOC rendering", () => {
 
   it("marks only the focused branch as active", () => {
     const toc = renderToc(makeStatus(), "combined");
-    expect(toc).toContain("| <svg");
-    expect(toc).toContain("| No PR | <svg");
-    expect(toc).not.toContain("[A](https://example.test/10) | <svg");
+    expect(toc).toContain("| <img");
+    expect(toc).toContain('| No PR | <img src="data:image/svg+xml;utf8,');
+    expect(toc).not.toContain('[A](https://example.test/10) | <img src="data:image/svg+xml;utf8,');
   });
 });

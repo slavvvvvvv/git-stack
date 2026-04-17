@@ -30,6 +30,18 @@ function formatStateIcon(branch: BranchStatus): string {
   return "";
 }
 
+function svgToDataUrl(svg: string): string {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function formatIconCell(svg: string, alt: string): string {
+  if (!svg) {
+    return "";
+  }
+
+  return `<img src="${svgToDataUrl(svg)}" alt="${alt}" width="16" height="16">`;
+}
+
 function formatPrCell(branch: BranchStatus): string {
   if (!branch.pr) {
     return "No PR";
@@ -41,8 +53,9 @@ function formatPrCell(branch: BranchStatus): string {
 function renderBranchTable(branches: BranchStatus[], focusedBranchName: string | undefined): string[] {
   const lines = ["|  | Title/Link | Viewing? |", "| --- | --- | --- |"];
   for (const branch of branches) {
-    const viewingIcon = branch.name === focusedBranchName ? VIEWING_ICON : "";
-    lines.push(`| ${formatStateIcon(branch)} | ${formatPrCell(branch)} | ${viewingIcon} |`);
+    const viewingIcon = branch.name === focusedBranchName ? formatIconCell(VIEWING_ICON, "viewing") : "";
+    const stateAlt = branch.pr?.mergedAt || branch.isMerged ? "merged" : branch.pr?.isDraft ? "draft" : branch.pr?.state === "closed" ? "closed" : branch.pr?.state === "open" ? "open" : "";
+    lines.push(`| ${formatIconCell(formatStateIcon(branch), stateAlt)} | ${formatPrCell(branch)} | ${viewingIcon} |`);
   }
   return lines;
 }
