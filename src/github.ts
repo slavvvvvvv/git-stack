@@ -142,6 +142,7 @@ export async function ensurePullRequests(
   const combinedBranch = train.branches.find((branch) => branch.role === "combined")?.name ?? null;
   const activeBranches = train.branches.filter((branch) => !status.branches.find((candidate) => candidate.name === branch.name)?.isMerged);
 
+  // Phase 1: ensure each PR exists and capture its latest title/base/body metadata.
   for (const [index, branch] of activeBranches.entries()) {
     const branchStatus = branchStatuses.find((item) => item.name === branch.name);
     if (!branchStatus) {
@@ -180,17 +181,36 @@ export async function ensurePullRequests(
     }
 
     branchStatus.pr = pr;
-    const updatedStatus: TrainStatus = { ...status, branches: branchStatuses };
-    const nextBody = upsertManagedToc(pr.body, updatedStatus, branch.name);
-    operations.push(`update-pr:${branch.name}#${pr.number}`);
     if (!options.dryRun) {
       const response = await octokit.pulls.update({
         owner: coords.owner,
         repo: coords.repo,
         pull_number: pr.number,
         title: branch.name === combinedBranch ? commitMessage.title : pr.title,
-        body: nextBody,
         base: baseBranch,
+      });
+      branchStatus.pr = mapPr(response.data);
+    }
+  }
+
+  // Phase 2: rewrite every PR body using the complete final PR title map.
+  for (const branch of activeBranches) {
+    const branchStatus = branchStatuses.find((item) => item.name === branch.name);
+    if (!branchStatus?.pr) {
+      continue;
+    }
+
+    const updatedStatus: TrainStatus = { ...status, branches: branchStatuses };
+    const nextBody = upsertManagedToc(branchStatus.pr.body, updatedStatus, branch.name);
+    operations.push(`update-pr:${branch.name}#${branchStatus.pr.number}`);
+
+    if (!options.dryRun) {
+      const response = await octokit.pulls.update({
+        owner: coords.owner,
+        repo: coords.repo,
+        pull_number: branchStatus.pr.number,
+        title: branchStatus.pr.title,
+        body: nextBody,
       });
       branchStatus.pr = mapPr(response.data);
 
@@ -198,10 +218,10 @@ export async function ensurePullRequests(
         await octokit.issues.createComment({
           owner: coords.owner,
           repo: coords.repo,
-          issue_number: pr.number,
+          issue_number: branchStatus.pr.number,
           body: defaults.prs.commentOnUpdate,
         });
-        operations.push(`comment-pr:${branch.name}#${pr.number}`);
+        operations.push(`comment-pr:${branch.name}#${branchStatus.pr.number}`);
       }
     }
 
