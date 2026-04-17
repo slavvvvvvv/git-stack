@@ -55,19 +55,32 @@ function formatPrCell(branch: BranchStatus): string {
   return `<a href="${escapeHtml(branch.pr.url)}">${escapeHtml(branch.pr.title)}</a>`;
 }
 
+function formatTitleCell(branch: BranchStatus, focusedBranchName: string | undefined): string {
+  const viewingIcon = branch.name === focusedBranchName ? formatIconCell(VIEWING_ICON, "viewing") : "";
+  return [
+    '<table role="presentation" width="100%">',
+    "  <tbody>",
+    "    <tr>",
+    `      <td width="100%">${formatPrCell(branch)}</td>`,
+    `      <td align="right">${viewingIcon}</td>`,
+    "    </tr>",
+    "  </tbody>",
+    "</table>",
+  ].join("");
+}
+
 function renderBranchTable(branches: BranchStatus[], focusedBranchName: string | undefined): string[] {
   const lines = [
     '<table>',
     "  <thead>",
     "    <tr>",
     "      <th></th>",
-    "      <th>Title/Link</th>",
+    '      <th width="500">Title/Link</th>',
     "    </tr>",
     "  </thead>",
     "  <tbody>",
   ];
   for (const branch of branches) {
-    const viewingIcon = branch.name === focusedBranchName ? formatIconCell(VIEWING_ICON, "viewing") : "";
     const stateAlt =
       branch.pr?.mergedAt || branch.isMerged
         ? "merged"
@@ -80,9 +93,7 @@ function renderBranchTable(branches: BranchStatus[], focusedBranchName: string |
               : "";
     lines.push("    <tr>");
     lines.push(`      <td>${formatIconCell(formatStateIcon(branch), stateAlt)}</td>`);
-    lines.push(
-      `      <td><div style="display:flex; justify-content:space-between; align-items:center; min-width:500px; gap:12px;">${formatPrCell(branch)}${viewingIcon}</div></td>`,
-    );
+    lines.push(`      <td width="500">${formatTitleCell(branch, focusedBranchName)}</td>`);
     lines.push("    </tr>");
   }
   lines.push("  </tbody>", "</table>");
