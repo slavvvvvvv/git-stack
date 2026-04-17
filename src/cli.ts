@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
+import { runWithOutput } from "./cli-ui.js";
 import { installMcpIntoTarget, type McpInstallTarget } from "./install.js";
 import {
   advanceTrain,
@@ -18,43 +19,6 @@ import {
   validateRepo,
 } from "./operations.js";
 import { startMcpServer } from "./mcp.js";
-import type { OperationResult } from "./types.js";
-
-function printResult(result: OperationResult, asJson: boolean): void {
-  if (asJson) {
-    console.log(JSON.stringify(result, null, 2));
-    return;
-  }
-
-  console.log(result.message);
-  if (result.operations && result.operations.length > 0) {
-    console.log(result.operations.map((operation) => ` - ${operation}`).join("\n"));
-  }
-  if (result.status) {
-    console.log(`Stack: ${result.status.train.name}`);
-    console.log(`Current branch: ${result.status.currentBranch}`);
-    for (const branch of result.status.branches) {
-      const flags = [
-        branch.isCurrent ? "current" : null,
-        branch.isMerged ? "merged" : "active",
-        branch.role === "combined" ? "combined" : null,
-      ].filter(Boolean);
-      const prText = branch.pr ? ` PR #${branch.pr.number}` : "";
-      console.log(` - ${branch.name} [${flags.join(", ")}]${prText}`);
-    }
-  }
-  if (result.warnings.length > 0) {
-    console.error(result.warnings.map((warning) => `warning: ${warning}`).join("\n"));
-  }
-}
-
-async function runWithOutput(action: Promise<OperationResult>, asJson: boolean): Promise<void> {
-  const result = await action;
-  printResult(result, asJson);
-  if (!result.ok) {
-    process.exitCode = 1;
-  }
-}
 
 const program = new Command();
 program.name("git stack").version(pkg.version);
@@ -65,28 +29,28 @@ program
   .command("init")
   .description("Create a .stack.yml config from the bundled template")
   .action(async () => {
-    await runWithOutput(initConfig(process.cwd()), program.opts().json ?? false);
+    await runWithOutput(initConfig(process.cwd()), program.opts().json ?? false, "Creating stack config");
   });
 
 program
   .command("config")
   .description("Open the repo .stack.yml in the configured editor")
   .action(async () => {
-    await runWithOutput(openConfigInEditor(process.cwd()), program.opts().json ?? false);
+    await runWithOutput(openConfigInEditor(process.cwd()), program.opts().json ?? false, "Opening stack config");
   });
 
 program
   .command("create <branches...>")
   .description("Create a new stack from the current branch and add it to .stack.yml")
   .action(async (branches: string[]) => {
-    await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false);
+    await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false, "Creating stack");
   });
 
 program
   .command("add <stack>")
   .description("Add the current branch onto an existing stack by name")
   .action(async (stack: string) => {
-    await runWithOutput(pushBranchOntoTrain(process.cwd(), stack), program.opts().json ?? false);
+    await runWithOutput(pushBranchOntoTrain(process.cwd(), stack), program.opts().json ?? false, "Updating stack");
   });
 
 program
@@ -118,6 +82,7 @@ program
           printUrls: options.printUrls,
         }),
         program.opts().json ?? false,
+        "Publishing stack PRs",
       );
     },
   );
@@ -134,7 +99,7 @@ program
   .description("Show the resolved stack status")
   .option("--stack <name>", "stack name")
   .action(async (options: { stack?: string }) => {
-    await runWithOutput(statusOperation(process.cwd(), options.stack), program.opts().json ?? false);
+    await runWithOutput(statusOperation(process.cwd(), options.stack), program.opts().json ?? false, "Resolving stack status");
   });
 
 program
@@ -142,7 +107,7 @@ program
   .description("Validate stack config and branch existence")
   .option("--stack <name>", "stack name")
   .action(async (options: { stack?: string }) => {
-    await runWithOutput(validateRepo(process.cwd(), options.stack), program.opts().json ?? false);
+    await runWithOutput(validateRepo(process.cwd(), options.stack), program.opts().json ?? false, "Validating stack");
   });
 
 program
@@ -162,6 +127,7 @@ program
         includeMerged: options.includeMerged,
       }),
       program.opts().json ?? false,
+      "Syncing stack",
     );
   });
 
@@ -179,6 +145,7 @@ prs
         printUrls: options.printUrls,
       }),
       program.opts().json ?? false,
+      "Ensuring stack PRs",
     );
   });
 
@@ -205,6 +172,7 @@ program
         commentUpdatedPrs: options.commentUpdatedPrs ?? null,
       }),
       program.opts().json ?? false,
+      "Advancing stack",
     );
   });
 
@@ -213,7 +181,7 @@ program
   .description("Checkout a branch by index, name, or 'combined'")
   .option("--stack <name>", "stack name")
   .action(async (selector: string, options: { stack?: string }) => {
-    await runWithOutput(checkoutTrainBranch(process.cwd(), options.stack, selector), program.opts().json ?? false);
+    await runWithOutput(checkoutTrainBranch(process.cwd(), options.stack, selector), program.opts().json ?? false, "Checking out branch");
   });
 
 const mcp = program.command("mcp").description("Run the git-stack MCP server or manage client installs");
@@ -228,7 +196,7 @@ mcp
     throw new Error(`Unsupported install target: ${value}`);
   })
   .action(async (target: McpInstallTarget) => {
-    await runWithOutput(installMcpIntoTarget(target), program.opts().json ?? false);
+    await runWithOutput(installMcpIntoTarget(target), program.opts().json ?? false, `Installing MCP into ${target}`);
   });
 
 mcp.action(async () => {
@@ -236,7 +204,7 @@ mcp.action(async () => {
 });
 
 program.action(async () => {
-  await runWithOutput(statusOperation(process.cwd()), program.opts().json ?? false);
+  await runWithOutput(statusOperation(process.cwd()), program.opts().json ?? false, "Resolving stack status");
 });
 
 program.parseAsync(process.argv).catch((error: unknown) => {
