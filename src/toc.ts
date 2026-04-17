@@ -60,9 +60,9 @@ function renderBranchTable(branches: BranchStatus[], focusedBranchName: string |
     '<table>',
     "  <thead>",
     "    <tr>",
-    "      <th></th>",
-    '      <th width="500">Title/Link</th>',
-    "      <th></th>",
+    '      <th width="45"></th>',
+    '      <th width="685">Title/Link</th>',
+    '      <th width="45"></th>',
     "    </tr>",
     "  </thead>",
     "  <tbody>",
@@ -80,9 +80,9 @@ function renderBranchTable(branches: BranchStatus[], focusedBranchName: string |
               ? "open"
               : "";
     lines.push("    <tr>");
-    lines.push(`      <td>${formatIconCell(formatStateIcon(branch), stateAlt)}</td>`);
-    lines.push(`      <td width="500">${formatPrCell(branch)}</td>`);
-    lines.push(`      <td>${viewingIcon}</td>`);
+    lines.push(`      <td width="45">${formatIconCell(formatStateIcon(branch), stateAlt)}</td>`);
+    lines.push(`      <td width="685">${formatPrCell(branch)}</td>`);
+    lines.push(`      <td width="45">${viewingIcon}</td>`);
     lines.push("    </tr>");
   }
   lines.push("  </tbody>", "</table>");
