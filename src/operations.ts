@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createDefaultRepoDefaults, loadGlobalConfig, loadStackConfig } from "./config.js";
-import { getRepoConfigPath, writeStackConfig, writeTemplateConfig } from "./config.js";
+import { getGlobalStacksPath, getRepoConfigPath, writeStackConfig, writeTemplateConfig } from "./config.js";
 import { closePullRequest, commentOnPullRequest, createOctokit, ensurePullRequests } from "./github.js";
 import { renderHelp, type HelpSurface } from "./help.js";
 import {
@@ -291,8 +291,8 @@ export async function listTrainsOperation(cwd: string): Promise<OperationResult>
 }
 
 export async function initConfig(cwd: string): Promise<OperationResult> {
-  const { repoPath } = await createRepoContext(cwd);
-  const configPath = getRepoConfigPath(repoPath);
+  await createRepoContext(cwd);
+  const configPath = getGlobalStacksPath();
   if (await import("node:fs").then((mod) => mod.existsSync(configPath))) {
     throw new Error(`Config already exists at ${configPath}`);
   }
@@ -319,8 +319,8 @@ export function getConfiguredEditor(env: NodeJS.ProcessEnv): string | null {
 }
 
 export async function openConfigInEditor(cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<OperationResult> {
-  const { repoPath } = await createRepoContext(cwd);
-  const configPath = getRepoConfigPath(repoPath);
+  await createRepoContext(cwd);
+  const configPath = getGlobalStacksPath();
   const editor = getConfiguredEditor(env);
 
   if (!editor) {
@@ -372,7 +372,7 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
     }
   }
 
-  const configPath = getRepoConfigPath(repoPath);
+  const configPath = getGlobalStacksPath();
   let defaults = createDefaultRepoDefaults();
   let trains = [] as ReturnType<typeof loadStackConfig>["trains"];
 

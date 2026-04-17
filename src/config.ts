@@ -147,8 +147,16 @@ export function getRepoConfigPath(repoPath: string): string {
   return path.join(repoPath, ".stack.yml");
 }
 
+function getConfigHomeDir(): string {
+  return process.env.GIT_STACK_HOME?.trim() || os.homedir();
+}
+
 export function getGlobalConfigPath(): string {
-  return path.join(os.homedir(), ".config", "git-stack", "config.yml");
+  return path.join(getConfigHomeDir(), ".config", "git-stack", "config.yml");
+}
+
+export function getGlobalStacksPath(): string {
+  return path.join(getConfigHomeDir(), ".config", "git-stack", "stacks.yml");
 }
 
 export function getTemplatePath(): string {
@@ -169,17 +177,19 @@ export function loadGlobalConfig(): GlobalConfig {
 }
 
 export function loadStackConfig(repoPath: string): StackConfig {
+  const globalStacksPath = getGlobalStacksPath();
   const repoConfigPath = getRepoConfigPath(repoPath);
-  if (!fs.existsSync(repoConfigPath)) {
-    throw new Error(`Config file not found at ${repoConfigPath}`);
+  const configPath = fs.existsSync(globalStacksPath) ? globalStacksPath : repoConfigPath;
+  if (!fs.existsSync(configPath)) {
+    throw new Error(`Config file not found at ${globalStacksPath} or ${repoConfigPath}`);
   }
 
   const globalConfig = loadGlobalConfig();
-  const parsed = stackConfigSchema.parse(parseYamlFile(repoConfigPath));
+  const parsed = stackConfigSchema.parse(parseYamlFile(configPath));
   const defaults = mergeDefaults(globalConfig.defaults, parsed.defaults as Partial<RepoDefaults> | undefined);
   const rawStacks = parsed.stacks ?? parsed.trains;
   if (!rawStacks || Object.keys(rawStacks).length === 0) {
-    throw new Error(`Config file at ${repoConfigPath} does not define any stacks.`);
+    throw new Error(`Config file at ${configPath} does not define any stacks.`);
   }
   const trains = Object.entries(rawStacks).map(([name, train]) => normalizeTrain(name, train));
 
@@ -190,7 +200,8 @@ export function loadStackConfig(repoPath: string): StackConfig {
 }
 
 export function writeStackConfig(repoPath: string, config: StackConfig): void {
-  const repoConfigPath = getRepoConfigPath(repoPath);
+  const repoConfigPath = getGlobalStacksPath();
+  fs.mkdirSync(path.dirname(repoConfigPath), { recursive: true });
   const serialized = {
     defaults: config.defaults,
     stacks: Object.fromEntries(
@@ -218,6 +229,7 @@ export function writeStackConfig(repoPath: string, config: StackConfig): void {
 }
 
 export function writeTemplateConfig(targetPath: string): void {
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   const sourcePath = getTemplatePath();
   fs.copyFileSync(sourcePath, targetPath);
 }

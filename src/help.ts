@@ -14,7 +14,7 @@ const helpTopics: HelpTopicEntry[] = [
     summary: "Understand the main workflows supported by git-stack.",
     details: [
       "`git-stack` manages ordered pull request stacks.",
-      "A stack is defined in `.stack.yml` as an ordered branch list plus `syncBase` and `prTarget`.",
+      "A stack is defined in the global stacks file as an ordered branch list plus `syncBase` and `prTarget`.",
       "CLI workflows are for local git operations, branch creation, PR management, and launching the MCP server.",
       "MCP workflows expose the same stack data and mutating actions as structured tools and resources for agents.",
     ],
@@ -27,7 +27,7 @@ const helpTopics: HelpTopicEntry[] = [
       "Use `git stack create ...` to bootstrap a new stack from the current branch.",
       "Use `git stack add <stack>` to append the current branch to an existing stack definition.",
       "Use `git stack push` to push branches and create chained pull requests for the current stack.",
-      "Use `git stack config` to open `.stack.yml` in `EDITOR` or `VISUAL`.",
+      "Use `git stack config` to open the global stacks file in `EDITOR` or `VISUAL`.",
       "Use `git stack status`, `sync`, `prs ensure`, and `advance` to inspect and operate on the stack lifecycle.",
       "Use `git stack mcp` when you want an MCP client to access the repo through structured tools.",
     ],
@@ -51,7 +51,7 @@ const helpTopics: HelpTopicEntry[] = [
       "The current checked-out branch becomes both `syncBase` and `prTarget` for the new stack.",
       "Each provided branch is created in order, with each branch based on the previous one.",
       "The stack name is the first branch argument.",
-      "The command writes the stack into `.stack.yml` and checks out the first created branch.",
+      "The command writes the stack into the global stacks file and checks out the first created branch.",
     ],
   },
   {
@@ -103,7 +103,7 @@ const helpTopics: HelpTopicEntry[] = [
     surfaces: ["cli", "mcp", "all"],
     summary: "Understand the config model used by git-stack.",
     details: [
-      "Repo-local config lives in `.stack.yml`.",
+      "Authoritative stack definitions live in `~/.config/git-stack/stacks.yml`.",
       "Optional global defaults and GitHub token fallback live in `~/.config/git-stack/config.yml`.",
       "Each stack declares `syncBase`, `prTarget`, and an ordered branch list.",
       "A combined branch is optional, but if present it must be the final branch.",

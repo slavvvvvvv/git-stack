@@ -118,13 +118,13 @@ git stack <command>
 
 ## Basic Setup
 
-1. Create the repo-local config:
+1. Create the global stacks config:
 
 ```bash
 git stack init
 ```
 
-2. Edit `.stack.yml` for your repo. Minimal example:
+2. Edit `~/.config/git-stack/stacks.yml`. Minimal example:
 
 ```yaml
 defaults:
@@ -241,11 +241,11 @@ git stack --json status
 
 ### `git stack init`
 
-Creates `.stack.yml` in the repo root using the bundled template.
+Creates the global stacks file using the bundled template.
 
 Behavior:
 
-- fails if `.stack.yml` already exists
+- fails if the global stacks file already exists
 - requires the current directory to be inside a git repository
 
 Arguments:
@@ -254,13 +254,13 @@ Arguments:
 
 ### `git stack config`
 
-Opens the repo-local `.stack.yml` in the configured editor.
+Opens the global stacks file in the configured editor.
 
 Behavior:
 
 - uses `EDITOR` first
 - falls back to `VISUAL`
-- creates `.stack.yml` from the bundled template if it does not exist yet
+- creates the global stacks file from the bundled template if it does not exist yet
 - fails if neither `EDITOR` nor `VISUAL` is set
 
 Arguments:
@@ -269,7 +269,7 @@ Arguments:
 
 ### `git stack create <branches...>`
 
-Creates a new stack from the current branch and writes it into `.stack.yml`.
+Creates a new stack from the current branch and writes it into the global stacks file.
 
 Behavior:
 
@@ -630,13 +630,10 @@ Most CLI JSON output and MCP tool responses serialize the same operation model:
 
 ## Config API
 
-Primary repo config:
-
-- `.stack.yml`
-
 Optional global config:
 
 - `~/.config/git-stack/config.yml`
+- `~/.config/git-stack/stacks.yml`
 
 ## Repo Config Schema
 
