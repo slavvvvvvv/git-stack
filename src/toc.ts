@@ -30,16 +30,12 @@ function formatStateIcon(branch: BranchStatus): string {
   return "";
 }
 
-function svgToDataUrl(svg: string): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-function formatIconCell(svg: string, alt: string): string {
-  if (!svg) {
+function formatIconCell(iconUrl: string, alt: string): string {
+  if (!iconUrl) {
     return "";
   }
 
-  return `<img src="${svgToDataUrl(svg)}" alt="${alt}" width="16" height="16">`;
+  return `<img src="${iconUrl}" alt="${alt}" width="16" height="16">`;
 }
 
 function formatPrCell(branch: BranchStatus): string {

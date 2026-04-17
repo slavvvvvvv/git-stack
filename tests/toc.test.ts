@@ -80,7 +80,8 @@ describe("TOC rendering", () => {
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
     expect(toc).toContain("|  | Title/Link | Viewing? |");
-    expect(toc).toContain("data:image/svg+xml;utf8,");
+    expect(toc).toContain("raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/git-open-icon.svg");
+    expect(toc).toContain("raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/git-merged-icon.svg");
     expect(toc).toContain('alt="open"');
     expect(toc).toContain('alt="merged"');
     expect(toc).toContain('[A](https://example.test/10) | <img');
@@ -106,7 +107,7 @@ describe("TOC rendering", () => {
   it("marks only the focused branch as active", () => {
     const toc = renderToc(makeStatus(), "combined");
     expect(toc).toContain("| <img");
-    expect(toc).toContain('| No PR | <img src="data:image/svg+xml;utf8,');
-    expect(toc).not.toContain('[A](https://example.test/10) | <img src="data:image/svg+xml;utf8,');
+    expect(toc).toContain('| No PR | <img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
+    expect(toc).not.toContain('[A](https://example.test/10) | <img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
   });
 });
