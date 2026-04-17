@@ -77,7 +77,6 @@ function makeStatus(): TrainStatus {
 describe("TOC rendering", () => {
   it("renders active and merged sections", () => {
     const toc = renderToc(makeStatus());
-    expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
     expect(toc).toContain("<table>");
     expect(toc).toContain('<th width="500">Title/Link</th>');

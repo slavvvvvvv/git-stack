@@ -94,7 +94,6 @@ export function renderToc(status: TrainStatus, focusedBranchName = status.curren
   const merged = status.branches.filter((branch) => branch.isMerged && !branch.isActive);
 
   const lines = [TOC_START, "## Stack", ""];
-  lines.push("### Active");
   if (active.length === 0) {
     lines.push("No active branches.");
   } else {
