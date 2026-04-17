@@ -7,6 +7,24 @@
 
 It is designed as a more ergonomic successor to `pr-train`, with explicit subcommands, managed PR navigation sections, cached repo-local stack state, and an MCP interface that mirrors the core workflows.
 
+## Why Use It
+
+`git-stack` is for teams that split one feature into several reviewable pull requests but still want the whole chain to stay easy to manage.
+
+Useful cases:
+
+- You want to break a large feature into smaller PRs without manually rebasing and retargeting every branch yourself.
+- You want each PR in a stack to point at the previous PR automatically, with a visible stack table in every description.
+- You want a single command to sync branches, push them, and publish the full stack to GitHub.
+- You want an MCP server so agents can inspect stacks, advance them, or help maintain them without scraping git output.
+
+Typical workflow:
+
+- Create a stack from your current branch with `git stack create ...`
+- Keep it in sync with `git stack sync`
+- Publish or refresh the whole PR chain with `git stack push`
+- Advance the remaining work after merges with `git stack advance`
+
 ## Table Of Contents
 
 - [Summary](#summary)
