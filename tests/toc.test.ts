@@ -79,35 +79,37 @@ describe("TOC rendering", () => {
     const toc = renderToc(makeStatus());
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
-    expect(toc).toContain("|  | Title/Link | Viewing? |");
+    expect(toc).toContain("<table>");
+    expect(toc).toContain("<th>Title/Link</th>");
     expect(toc).toContain("raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/git-open-icon.svg");
     expect(toc).toContain("raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/git-merged-icon.svg");
     expect(toc).toContain('alt="open"');
     expect(toc).toContain('alt="merged"');
-    expect(toc).toContain('[A](https://example.test/10) | <img');
-    expect(toc).toContain('[B](https://example.test/11) |  |');
-    expect(toc).toContain("|  | No PR |  |");
+    expect(toc).toContain('<a href="https://example.test/10">A</a>');
+    expect(toc).toContain('min-width:500px');
+    expect(toc).toContain('No PR');
   });
 
   it("replaces an existing managed section", () => {
     const status = makeStatus();
     const body = `hello\n\n<!-- git-stack:toc:start -->old<!-- git-stack:toc:end -->`;
     const next = upsertManagedToc(body, status);
-    expect(next).toContain("[A](https://example.test/10)");
+    expect(next.startsWith("<!-- git-stack:toc:start -->")).toBe(true);
+    expect(next).toContain('<a href="https://example.test/10">A</a>');
     expect(next).not.toContain("old");
+    expect(next).toContain("hello");
   });
 
-  it("appends the managed stack table to a plain body", () => {
+  it("prepends the managed stack table to a plain body", () => {
     const next = upsertManagedToc("existing body", makeStatus());
+    expect(next.startsWith("<!-- git-stack:toc:start -->")).toBe(true);
     expect(next).toContain("existing body");
-    expect(next).toContain("<!-- git-stack:toc:start -->");
     expect(next).toContain("https://example.test/10");
   });
 
   it("marks only the focused branch as active", () => {
     const toc = renderToc(makeStatus(), "combined");
-    expect(toc).toContain("| <img");
-    expect(toc).toContain('| No PR | <img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
-    expect(toc).not.toContain('[A](https://example.test/10) | <img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
+    expect(toc).toContain('No PR<img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
+    expect(toc).not.toContain('<a href="https://example.test/10">A</a><img src="https://raw.githubusercontent.com/slavvvvvvv/git-stack/main/assets/icons/viewing-icon.svg"');
   });
 });

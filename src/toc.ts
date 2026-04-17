@@ -10,6 +10,15 @@ import {
 export const TOC_START = "<!-- git-stack:toc:start -->";
 export const TOC_END = "<!-- git-stack:toc:end -->";
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function formatStateIcon(branch: BranchStatus): string {
   if (branch.pr?.mergedAt || branch.isMerged) {
     return GIT_MERGED_ICON;
@@ -43,16 +52,40 @@ function formatPrCell(branch: BranchStatus): string {
     return "No PR";
   }
 
-  return `[${branch.pr.title}](${branch.pr.url})`;
+  return `<a href="${escapeHtml(branch.pr.url)}">${escapeHtml(branch.pr.title)}</a>`;
 }
 
 function renderBranchTable(branches: BranchStatus[], focusedBranchName: string | undefined): string[] {
-  const lines = ["|  | Title/Link | Viewing? |", "| --- | --- | --- |"];
+  const lines = [
+    '<table>',
+    "  <thead>",
+    "    <tr>",
+    "      <th></th>",
+    "      <th>Title/Link</th>",
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+  ];
   for (const branch of branches) {
     const viewingIcon = branch.name === focusedBranchName ? formatIconCell(VIEWING_ICON, "viewing") : "";
-    const stateAlt = branch.pr?.mergedAt || branch.isMerged ? "merged" : branch.pr?.isDraft ? "draft" : branch.pr?.state === "closed" ? "closed" : branch.pr?.state === "open" ? "open" : "";
-    lines.push(`| ${formatIconCell(formatStateIcon(branch), stateAlt)} | ${formatPrCell(branch)} | ${viewingIcon} |`);
+    const stateAlt =
+      branch.pr?.mergedAt || branch.isMerged
+        ? "merged"
+        : branch.pr?.isDraft
+          ? "draft"
+          : branch.pr?.state === "closed"
+            ? "closed"
+            : branch.pr?.state === "open"
+              ? "open"
+              : "";
+    lines.push("    <tr>");
+    lines.push(`      <td>${formatIconCell(formatStateIcon(branch), stateAlt)}</td>`);
+    lines.push(
+      `      <td><div style="display:flex; justify-content:space-between; align-items:center; min-width:500px; gap:12px;">${formatPrCell(branch)}${viewingIcon}</div></td>`,
+    );
+    lines.push("    </tr>");
   }
+  lines.push("  </tbody>", "</table>");
   return lines;
 }
 
@@ -82,8 +115,9 @@ export function upsertManagedToc(body: string, status: TrainStatus, focusedBranc
   if (body.includes(TOC_START) && body.includes(TOC_END)) {
     const startIndex = body.indexOf(TOC_START);
     const endIndex = body.indexOf(TOC_END) + TOC_END.length;
-    return `${body.slice(0, startIndex)}${nextToc}${body.slice(endIndex)}`.trim();
+    const bodyWithoutManagedSection = `${body.slice(0, startIndex)}${body.slice(endIndex)}`.trim();
+    return [nextToc, bodyWithoutManagedSection].filter(Boolean).join("\n\n");
   }
 
-  return [body.trim(), nextToc].filter(Boolean).join("\n\n");
+  return [nextToc, body.trim()].filter(Boolean).join("\n\n");
 }
