@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
-import { runWithOutput } from "./cli-ui.js";
+import { printResult, printStepResult, runStepWithOutput, runWithOutput } from "./cli-ui.js";
 import { installMcpIntoTarget, type McpInstallTarget } from "./install.js";
 import {
   advanceTrain,
@@ -12,7 +12,6 @@ import {
   helpOperation,
   initConfig,
   openConfigInEditor,
-  pushTrain,
   pushBranchOntoTrain,
   statusOperation,
   syncTrain,
@@ -73,17 +72,77 @@ program
       ready?: boolean;
       printUrls?: boolean;
     }) => {
-      await runWithOutput(
-        pushTrain(process.cwd(), options.stack, {
+      const asJson = program.opts().json ?? false;
+
+      const syncResult = await runStepWithOutput(
+        syncTrain(process.cwd(), options.stack, {
           strategy: options.strategy,
+          push: true,
           force: options.force,
           includeMerged: options.includeMerged,
+        }),
+        asJson,
+        "Syncing and pushing stack branches",
+        "Synced and pushed stack branches",
+      );
+
+      if (asJson) {
+        if (!syncResult.ok) {
+          printResult(syncResult, true);
+          if (!syncResult.ok) {
+            process.exitCode = 1;
+          }
+          return;
+        }
+
+        const ensureResult = await ensureTrainPrs(process.cwd(), options.stack, {
+          draft: options.ready ? false : options.draft,
+          printUrls: options.printUrls,
+        });
+        const result: typeof ensureResult = {
+          ...ensureResult,
+          message: "Stack pushed and PRs ensured with stack tables in the PR descriptions.",
+          warnings: [...syncResult.warnings, ...ensureResult.warnings],
+          operations: [...(syncResult.operations ?? []), ...(ensureResult.operations ?? [])],
+          status: ensureResult.status ?? syncResult.status,
+        };
+        printResult(result, true);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      printStepResult("Sync actions", syncResult);
+      if (!syncResult.ok) {
+        process.exitCode = 1;
+        return;
+      }
+
+      const ensureResult = await runStepWithOutput(
+        ensureTrainPrs(process.cwd(), options.stack, {
           draft: options.ready ? false : options.draft,
           printUrls: options.printUrls,
         }),
-        program.opts().json ?? false,
-        "Publishing stack PRs",
+        false,
+        "Creating and updating stacked PRs",
+        "Created and updated stacked PRs",
       );
+
+      printStepResult("PR actions", ensureResult);
+
+      const finalResult = {
+        ...ensureResult,
+        message: "Stack pushed and PRs ensured with stack tables in the PR descriptions.",
+        warnings: [...syncResult.warnings, ...ensureResult.warnings],
+        operations: [...(syncResult.operations ?? []), ...(ensureResult.operations ?? [])],
+        status: ensureResult.status ?? syncResult.status,
+      };
+
+      printResult(finalResult, false);
+      if (!finalResult.ok) {
+        process.exitCode = 1;
+      }
     },
   );
 

@@ -76,6 +76,18 @@ export function printResult(result: OperationResult, asJson: boolean): void {
   }
 }
 
+function printOperationsSection(title: string, operations: string[] | undefined): void {
+  if (!operations || operations.length === 0) {
+    return;
+  }
+
+  console.log("");
+  console.log(chalk.bold(title));
+  for (const operation of operations) {
+    console.log(chalk.dim(`  • ${operation}`));
+  }
+}
+
 export async function runWithOutput(
   action: Promise<OperationResult>,
   asJson: boolean,
@@ -102,5 +114,46 @@ export async function runWithOutput(
       spinner.fail(message);
     }
     throw error;
+  }
+}
+
+export async function runStepWithOutput(
+  action: Promise<OperationResult>,
+  asJson: boolean,
+  spinnerText: string,
+  doneText: string,
+): Promise<OperationResult> {
+  if (asJson) {
+    return action;
+  }
+
+  const spinner: Ora = ora({
+    text: spinnerText,
+    discardStdin: false,
+  }).start();
+
+  try {
+    const result = await action;
+    if (result.ok) {
+      spinner.succeed(doneText);
+    } else {
+      spinner.fail(result.message);
+    }
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    spinner.fail(message);
+    throw error;
+  }
+}
+
+export function printStepResult(title: string, result: OperationResult): void {
+  printOperationsSection(title, result.operations);
+  if (result.warnings.length > 0) {
+    console.log("");
+    console.log(chalk.bold.yellow(`${title} warnings`));
+    for (const warning of result.warnings) {
+      console.error(chalk.yellow(`  • ${warning}`));
+    }
   }
 }
