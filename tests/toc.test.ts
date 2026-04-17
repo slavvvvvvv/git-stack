@@ -79,17 +79,19 @@ describe("TOC rendering", () => {
     const toc = renderToc(makeStatus());
     expect(toc).toContain("### Active");
     expect(toc).toContain("### Merged");
-    expect(toc).toContain("| PR | Status |");
-    expect(toc).toContain("| [**A**](https://example.test/10) | active |");
-    expect(toc).toContain("| [B](https://example.test/11) | merged |");
-    expect(toc).toContain("| No PR | pending |");
+    expect(toc).toContain("|  | Title/Link | Viewing? |");
+    expect(toc).toContain("#1a7f37");
+    expect(toc).toContain("#8250df");
+    expect(toc).toContain('[A](https://example.test/10) | <svg');
+    expect(toc).toContain('[B](https://example.test/11) |  |');
+    expect(toc).toContain("|  | No PR |  |");
   });
 
   it("replaces an existing managed section", () => {
     const status = makeStatus();
     const body = `hello\n\n<!-- git-stack:toc:start -->old<!-- git-stack:toc:end -->`;
     const next = upsertManagedToc(body, status);
-    expect(next).toContain("[**A**](https://example.test/10)");
+    expect(next).toContain("[A](https://example.test/10)");
     expect(next).not.toContain("old");
   });
 
@@ -102,8 +104,8 @@ describe("TOC rendering", () => {
 
   it("marks only the focused branch as active", () => {
     const toc = renderToc(makeStatus(), "combined");
-    expect(toc).toContain("| [A](https://example.test/10) | pending |");
-    expect(toc).toContain("| No PR | active |");
-    expect(toc).not.toContain("| [**A**](https://example.test/10) | active |");
+    expect(toc).toContain("| <svg");
+    expect(toc).toContain("| No PR | <svg");
+    expect(toc).not.toContain("[A](https://example.test/10) | <svg");
   });
 });

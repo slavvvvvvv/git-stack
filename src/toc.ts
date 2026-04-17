@@ -1,33 +1,48 @@
 import type { BranchStatus, TrainStatus } from "./types.js";
+import {
+  GIT_CLOSED_ICON,
+  GIT_DRAFT_ICON,
+  GIT_MERGED_ICON,
+  GIT_OPEN_ICON,
+  VIEWING_ICON,
+} from "./pr-icons.js";
 
 export const TOC_START = "<!-- git-stack:toc:start -->";
 export const TOC_END = "<!-- git-stack:toc:end -->";
 
-function formatStatusText(branch: BranchStatus, focusedBranchName: string | undefined): string {
-  if (branch.isMerged) {
-    return "merged";
+function formatStateIcon(branch: BranchStatus): string {
+  if (branch.pr?.mergedAt || branch.isMerged) {
+    return GIT_MERGED_ICON;
   }
 
-  if (focusedBranchName && branch.name === focusedBranchName) {
-    return "active";
+  if (branch.pr?.isDraft) {
+    return GIT_DRAFT_ICON;
   }
 
-  return "pending";
+  if (branch.pr?.state === "closed") {
+    return GIT_CLOSED_ICON;
+  }
+
+  if (branch.pr?.state === "open") {
+    return GIT_OPEN_ICON;
+  }
+
+  return "";
 }
 
-function formatPrCell(branch: BranchStatus, focusedBranchName: string | undefined): string {
+function formatPrCell(branch: BranchStatus): string {
   if (!branch.pr) {
     return "No PR";
   }
 
-  const label = branch.name === focusedBranchName ? `**${branch.pr.title}**` : branch.pr.title;
-  return `[${label}](${branch.pr.url})`;
+  return `[${branch.pr.title}](${branch.pr.url})`;
 }
 
 function renderBranchTable(branches: BranchStatus[], focusedBranchName: string | undefined): string[] {
-  const lines = ["| PR | Status |", "| --- | --- |"];
+  const lines = ["|  | Title/Link | Viewing? |", "| --- | --- | --- |"];
   for (const branch of branches) {
-    lines.push(`| ${formatPrCell(branch, focusedBranchName)} | ${formatStatusText(branch, focusedBranchName)} |`);
+    const viewingIcon = branch.name === focusedBranchName ? VIEWING_ICON : "";
+    lines.push(`| ${formatStateIcon(branch)} | ${formatPrCell(branch)} | ${viewingIcon} |`);
   }
   return lines;
 }
