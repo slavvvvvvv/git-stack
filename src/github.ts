@@ -181,7 +181,7 @@ export async function ensurePullRequests(
 
     branchStatus.pr = pr;
     const updatedStatus: TrainStatus = { ...status, branches: branchStatuses };
-    const nextBody = upsertManagedToc(pr.body, updatedStatus);
+    const nextBody = upsertManagedToc(pr.body, updatedStatus, branch.name);
     operations.push(`update-pr:${branch.name}#${pr.number}`);
     if (!options.dryRun) {
       const response = await octokit.pulls.update({

@@ -3,36 +3,36 @@ import type { BranchStatus, TrainStatus } from "./types.js";
 export const TOC_START = "<!-- git-stack:toc:start -->";
 export const TOC_END = "<!-- git-stack:toc:end -->";
 
-function formatStatusText(branch: BranchStatus): string {
-  const parts: string[] = [];
-  if (branch.isCurrent) {
-    parts.push("current");
-  }
+function formatStatusText(branch: BranchStatus, focusedBranchName: string | undefined): string {
   if (branch.isMerged) {
-    parts.push("merged");
-  } else {
-    parts.push("active");
+    return "merged";
   }
-  return parts.join(", ");
+
+  if (focusedBranchName && branch.name === focusedBranchName) {
+    return "active";
+  }
+
+  return "pending";
 }
 
-function formatPrCell(branch: BranchStatus): string {
+function formatPrCell(branch: BranchStatus, focusedBranchName: string | undefined): string {
   if (!branch.pr) {
     return "No PR";
   }
 
-  return `[${branch.pr.title}](${branch.pr.url})`;
+  const label = branch.name === focusedBranchName ? `**${branch.pr.title}**` : branch.pr.title;
+  return `[${label}](${branch.pr.url})`;
 }
 
-function renderBranchTable(branches: BranchStatus[]): string[] {
+function renderBranchTable(branches: BranchStatus[], focusedBranchName: string | undefined): string[] {
   const lines = ["| PR | Status |", "| --- | --- |"];
   for (const branch of branches) {
-    lines.push(`| ${formatPrCell(branch)} | ${formatStatusText(branch)} |`);
+    lines.push(`| ${formatPrCell(branch, focusedBranchName)} | ${formatStatusText(branch, focusedBranchName)} |`);
   }
   return lines;
 }
 
-export function renderToc(status: TrainStatus): string {
+export function renderToc(status: TrainStatus, focusedBranchName = status.currentBranch): string {
   const active = status.branches.filter((branch) => branch.isActive);
   const merged = status.branches.filter((branch) => branch.isMerged && !branch.isActive);
 
@@ -41,20 +41,20 @@ export function renderToc(status: TrainStatus): string {
   if (active.length === 0) {
     lines.push("No active branches.");
   } else {
-    lines.push(...renderBranchTable(active));
+    lines.push(...renderBranchTable(active, focusedBranchName));
   }
 
   if (merged.length > 0) {
     lines.push("", "### Merged");
-    lines.push(...renderBranchTable(merged));
+    lines.push(...renderBranchTable(merged, focusedBranchName));
   }
 
   lines.push(TOC_END);
   return lines.join("\n");
 }
 
-export function upsertManagedToc(body: string, status: TrainStatus): string {
-  const nextToc = renderToc(status);
+export function upsertManagedToc(body: string, status: TrainStatus, focusedBranchName = status.currentBranch): string {
+  const nextToc = renderToc(status, focusedBranchName);
   if (body.includes(TOC_START) && body.includes(TOC_END)) {
     const startIndex = body.indexOf(TOC_START);
     const endIndex = body.indexOf(TOC_END) + TOC_END.length;
