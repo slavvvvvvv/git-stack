@@ -26,6 +26,7 @@ const helpTopics: HelpTopicEntry[] = [
     details: [
       "Use `git stack create ...` to bootstrap a new stack from the current branch.",
       "Use `git stack add <stack>` to append the current branch to an existing stack definition.",
+      "Use `git stack restack` to propagate local changes forward through downstream branches.",
       "Use `git stack push` to push branches and create chained pull requests for the current stack.",
       "Use `git stack config` to open the global stacks file in `EDITOR` or `VISUAL`.",
       "Use `git stack status`, `sync`, `prs ensure`, and `advance` to inspect and operate on the stack lifecycle.",
@@ -74,6 +75,17 @@ const helpTopics: HelpTopicEntry[] = [
       "It then creates or updates the stacked pull requests in sequence, so each PR targets the previous branch.",
       "The managed stack TOC with all PR links is written into each PR body.",
       "Use `--draft` or `--ready` to control draft status while publishing.",
+    ],
+  },
+  {
+    topic: "restack",
+    surfaces: ["cli", "all"],
+    summary: "Understand how `git stack restack` propagates local changes forward.",
+    details: [
+      "`git stack restack` starts from the current branch by default.",
+      "It rebases each subsequent branch in the stack onto the previous one in sequence.",
+      "By default it skips the combined branch and checks out the original branch when done.",
+      "Use `--from`, `--to`, `--include-combined`, and `--checkout last` to refine the range.",
     ],
   },
   {

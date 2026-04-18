@@ -13,6 +13,7 @@ import {
   initConfig,
   openConfigInEditor,
   pushBranchOntoTrain,
+  restackTrain,
   statusOperation,
   syncTrain,
   validateRepo,
@@ -143,6 +144,35 @@ program
       if (!finalResult.ok) {
         process.exitCode = 1;
       }
+    },
+  );
+
+program
+  .command("restack")
+  .description("Rebase downstream stack branches onto the current branch in sequence")
+  .option("--stack <name>", "stack name")
+  .option("--from <selector>", "starting branch selector", "current")
+  .option("--to <selector>", "ending branch selector")
+  .option("--include-combined", "include combined branch in the restack range")
+  .option("--checkout <target>", "where to end after restacking: original or last", "original")
+  .action(
+    async (options: {
+      stack?: string;
+      from?: string;
+      to?: string;
+      includeCombined?: boolean;
+      checkout?: "original" | "last";
+    }) => {
+      await runWithOutput(
+        restackTrain(process.cwd(), options.stack, {
+          from: options.from,
+          to: options.to,
+          includeCombined: options.includeCombined,
+          checkout: options.checkout,
+        }),
+        program.opts().json ?? false,
+        "Restacking downstream branches",
+      );
     },
   );
 

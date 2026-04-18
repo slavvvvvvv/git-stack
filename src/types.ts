@@ -132,3 +132,11 @@ export interface AdvanceOptions {
   commentUpdatedPrs?: string | null;
   dryRun?: boolean;
 }
+
+export interface RestackOptions {
+  from?: string;
+  to?: string;
+  includeCombined?: boolean;
+  checkout?: "original" | "last";
+  dryRun?: boolean;
+}

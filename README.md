@@ -38,6 +38,7 @@ Typical workflow:
   - [git stack create](#git-stack-create-branches)
   - [git stack add](#git-stack-add-stack)
   - [git stack push](#git-stack-push)
+  - [git stack restack](#git-stack-restack)
   - [git stack help](#git-stack-help-topic)
   - [git stack status](#git-stack-status)
   - [git stack validate](#git-stack-validate)
@@ -210,7 +211,14 @@ git stack push
 git stack push --draft
 ```
 
-8. Get built-in guidance for a topic:
+8. Restack downstream branches after changing a middle branch:
+
+```bash
+git stack restack
+git stack restack --from current --checkout last
+```
+
+9. Get built-in guidance for a topic:
 
 ```bash
 git stack help overview
@@ -218,7 +226,7 @@ git stack help create
 git stack help mcp
 ```
 
-9. Move around the stack quickly:
+10. Move around the stack quickly:
 
 ```bash
 git stack checkout first
@@ -372,6 +380,25 @@ Arguments:
 - `--ready`
 - `--print-urls`
 
+### `git stack restack`
+
+Rebases downstream stack branches onto the current branch in sequence.
+
+Behavior:
+
+- starts from the current branch by default
+- rebases each following stack branch onto the previous branch in order
+- skips the combined branch by default
+- returns to the original branch by default when done
+
+Arguments:
+
+- `--stack <name>`
+- `--from <selector>`
+- `--to <selector>`
+- `--include-combined`
+- `--checkout <original|last>`
+
 ### `git stack help [topic]`
 
 Shows built-in guidance about how git-stack works.
@@ -385,7 +412,7 @@ Behavior:
 Arguments:
 
 - `[topic]`
-  - optional topic such as `overview`, `cli`, `mcp`, `create`, `sync`, `prs`, `advance`, or `config`
+  - optional topic such as `overview`, `cli`, `mcp`, `create`, `sync`, `push`, `restack`, `prs`, `advance`, or `config`
 
 ### `git stack status`
 

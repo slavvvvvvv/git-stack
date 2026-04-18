@@ -102,6 +102,10 @@ describe("active branch helpers", () => {
     expect(resolveCheckoutSelector(status, "1")).toBe("feature-b");
   });
 
+  it("resolves current selector for restack-style flows", () => {
+    expect(resolveCheckoutSelector(status, "current")).toBe("feature-b");
+  });
+
   it("hydrates local-only status from cached PR metadata", () => {
     const cachedState: CachedTrainState = {
       version: 1,

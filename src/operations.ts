@@ -22,6 +22,7 @@ import type {
   AdvanceOptions,
   EnsurePrsOptions,
   OperationResult,
+  RestackOptions,
   SyncOptions,
   TrainStatus,
 } from "./types.js";
@@ -262,6 +263,10 @@ export async function checkoutTrainBranch(
 }
 
 export function resolveCheckoutSelector(status: TrainStatus, selector: string): string | undefined {
+  if (selector === "current") {
+    return status.currentBranch;
+  }
+
   if (selector === status.train.name) {
     return status.branches[0]?.name;
   }
@@ -525,6 +530,77 @@ export async function pushTrain(
     warnings: [...syncResult.warnings, ...ensureResult.warnings],
     operations: [...(syncResult.operations ?? []), ...(ensureResult.operations ?? [])],
     status: ensureResult.status ?? syncResult.status,
+  };
+}
+
+function resolveRestackBoundaryIndex(status: TrainStatus, selector: string): number {
+  const resolvedBranch = resolveCheckoutSelector(status, selector);
+  if (!resolvedBranch) {
+    throw new Error(`Could not resolve restack selector "${selector}".`);
+  }
+
+  const index = status.branches.findIndex((branch) => branch.name === resolvedBranch);
+  if (index < 0) {
+    throw new Error(`Branch "${resolvedBranch}" is not part of stack "${status.train.name}".`);
+  }
+
+  return index;
+}
+
+export async function restackTrain(
+  cwd: string,
+  stackName: string | undefined,
+  options: RestackOptions,
+): Promise<OperationResult> {
+  const { git } = await createRepoContext(cwd);
+  const status = await getTrainStatus(cwd, stackName, { includePrMetadata: false });
+  const originalBranch = status.currentBranch;
+  const fromIndex = resolveRestackBoundaryIndex(status, options.from ?? "current");
+  const combinedIndex = status.branches.findIndex((branch) => branch.role === "combined");
+  const defaultToIndex = combinedIndex >= 0 && !options.includeCombined ? combinedIndex - 1 : status.branches.length - 1;
+  const toIndex = options.to ? resolveRestackBoundaryIndex(status, options.to) : defaultToIndex;
+
+  if (toIndex <= fromIndex) {
+    return {
+      ok: true,
+      message: "No downstream stack branches to restack.",
+      warnings: [],
+      operations: [],
+      status,
+    };
+  }
+
+  const operations: string[] = [];
+  let previousBranch = status.branches[fromIndex]?.name;
+  if (!previousBranch) {
+    throw new Error(`Could not resolve source branch at index ${fromIndex}.`);
+  }
+
+  for (let index = fromIndex + 1; index <= toIndex; index += 1) {
+    const branch = status.branches[index];
+    if (!branch) {
+      continue;
+    }
+    operations.push(`rebase:${branch.name}<-${previousBranch}`);
+    if (!options.dryRun) {
+      await checkoutBranch(git, branch.name);
+      await git.rebase([previousBranch]);
+    }
+    previousBranch = branch.name;
+  }
+
+  const checkoutTarget = options.checkout === "last" ? previousBranch : originalBranch;
+  if (!options.dryRun) {
+    await checkoutBranch(git, checkoutTarget);
+  }
+
+  const nextStatus = await getTrainStatus(cwd, status.train.name, { includePrMetadata: false });
+  return {
+    ok: true,
+    message: `Restacked downstream branches from ${status.branches[fromIndex]?.name}.`,
+    warnings: [],
+    operations,
+    status: nextStatus,
   };
 }
 
