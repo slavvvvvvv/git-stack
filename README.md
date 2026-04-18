@@ -114,7 +114,7 @@ It is responsible for:
 Supporting modules:
 
 - [src/config.ts](/Users/slavko/git-stack/src/config.ts:1): YAML config loading and normalization
-- [src/state.ts](/Users/slavko/git-stack/src/state.ts:1): cached derived state in `.git/stack/state.json`
+- [src/state.ts](/Users/slavko/git-stack/src/state.ts:1): local and global cached stack metadata
 - [src/toc.ts](/Users/slavko/git-stack/src/toc.ts:1): managed PR TOC rendering and replacement
 - [templates/stack.yml](/Users/slavko/git-stack/templates/stack.yml:1): starter repo config
 
@@ -575,6 +575,7 @@ Arguments:
 ### `stack://repo/current/state`
 
 Returns the cached stack state stored in `.git/stack/state.json` when present.
+Fast local flows can also reuse the global cache in `~/.config/git-stack/cache.json`.
 
 Payload fields:
 
