@@ -83,6 +83,7 @@ export interface TrainStatus {
 
 export interface CachedTrainState {
   version: 1;
+  repoPath?: string;
   updatedAt: string;
   trainName: string;
   currentBranch: string;
@@ -95,6 +96,11 @@ export interface CachedTrainState {
     isMerged: boolean;
     pr?: PullRequestMetadata;
   }>;
+}
+
+export interface GlobalCachedTrainStateFile {
+  version: 1;
+  entries: Record<string, CachedTrainState>;
 }
 
 export interface OperationResult {

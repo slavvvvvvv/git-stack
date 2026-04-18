@@ -159,6 +159,10 @@ export function getGlobalStacksPath(): string {
   return path.join(getConfigHomeDir(), ".config", "git-stack", "stacks.yml");
 }
 
+export function getGlobalCachePath(): string {
+  return path.join(getConfigHomeDir(), ".config", "git-stack", "cache.json");
+}
+
 export function getTemplatePath(): string {
   return path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "templates", "stack.yml");
 }

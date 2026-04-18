@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { activeBranches, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/train.js";
+import { activeBranches, applyCachedPrMetadata, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/train.js";
 import { resolveCheckoutSelector } from "../src/operations.js";
-import type { BranchStatus, TrainDefinition, TrainStatus } from "../src/types.js";
+import type { BranchStatus, CachedTrainState, TrainDefinition, TrainStatus } from "../src/types.js";
 
 const trainDefinition: TrainDefinition = {
   name: "demo",
@@ -100,5 +100,41 @@ describe("active branch helpers", () => {
     expect(resolveCheckoutSelector(status, "next")).toBe("combined");
     expect(resolveCheckoutSelector(status, "previous")).toBe("feature-a");
     expect(resolveCheckoutSelector(status, "1")).toBe("feature-b");
+  });
+
+  it("hydrates local-only status from cached PR metadata", () => {
+    const cachedState: CachedTrainState = {
+      version: 1,
+      repoPath: "/tmp/repo",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      trainName: "demo",
+      currentBranch: "feature-b",
+      remote: "origin",
+      strategy: "merge",
+      combinedBranch: "combined",
+      branches: [
+        {
+          name: "feature-a",
+          role: "normal",
+          isMerged: false,
+          pr: {
+            number: 10,
+            url: "https://example.test/10",
+            state: "open",
+            isDraft: false,
+            title: "A",
+            body: "",
+            baseBranch: "main",
+            headBranch: "feature-a",
+            mergedAt: null,
+          },
+        },
+      ],
+    };
+
+    const hydrated = applyCachedPrMetadata(status.branches, cachedState);
+    expect(hydrated[0]?.pr?.number).toBe(10);
+    expect(hydrated[0]?.isMerged).toBe(false);
+    expect(hydrated[0]?.isActive).toBe(true);
   });
 });

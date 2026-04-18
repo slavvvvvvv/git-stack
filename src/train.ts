@@ -9,8 +9,8 @@ import {
   isAncestor,
   normalBranches,
 } from "./git.js";
-import { writeCachedState } from "./state.js";
-import type { BranchStatus, TrainDefinition, TrainStatus } from "./types.js";
+import { readGlobalCachedState, writeCachedState, writeGlobalCachedState } from "./state.js";
+import type { BranchStatus, CachedTrainState, TrainDefinition, TrainStatus } from "./types.js";
 
 export async function resolveTrain(git: SimpleGit, trainName: string | undefined, repoPath: string): Promise<{
   train: TrainDefinition;
@@ -63,6 +63,25 @@ export function reconcileBranchStatusWithPr(branch: BranchStatus): BranchStatus 
     isMerged: false,
     isActive: true,
   };
+}
+
+export function applyCachedPrMetadata(branches: BranchStatus[], cachedState: CachedTrainState | null): BranchStatus[] {
+  if (!cachedState) {
+    return branches;
+  }
+
+  const branchToCachedEntry = new Map(cachedState.branches.map((branch) => [branch.name, branch]));
+  return branches.map((branch) => {
+    const cachedBranch = branchToCachedEntry.get(branch.name);
+    if (!cachedBranch?.pr) {
+      return branch;
+    }
+
+    return reconcileBranchStatusWithPr({
+      ...branch,
+      pr: cachedBranch.pr,
+    });
+  });
 }
 
 async function buildBranchStatus(
@@ -127,6 +146,10 @@ export async function getTrainStatus(
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : String(error));
     }
+  } else {
+    const cachedState = readGlobalCachedState(repoPath, train.name);
+    const hydratedBranches = applyCachedPrMetadata(branches, cachedState);
+    branches.splice(0, branches.length, ...hydratedBranches);
   }
 
   const status: TrainStatus = {
@@ -141,6 +164,7 @@ export async function getTrainStatus(
   };
 
   await writeCachedState(git, status);
+  writeGlobalCachedState(status);
   return status;
 }
 
