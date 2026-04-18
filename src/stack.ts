@@ -1,5 +1,5 @@
 import type { SimpleGit } from "simple-git";
-import { findTrainByName, loadGlobalConfig, loadStackConfig, resolveCombinedBranch } from "./config.js";
+import { findStackByName, loadGlobalConfig, loadStackConfig, resolveCombinedBranch } from "./config.js";
 import { createOctokit, findPullRequestByHead } from "./github.js";
 import {
   branchExists,
@@ -10,39 +10,39 @@ import {
   normalBranches,
 } from "./git.js";
 import { readGlobalCachedState, writeCachedState, writeGlobalCachedState } from "./state.js";
-import type { BranchStatus, CachedTrainState, TrainDefinition, TrainStatus } from "./types.js";
+import type { BranchStatus, CachedStackState, StackDefinition, StackStatus } from "./types.js";
 
-export async function resolveTrain(git: SimpleGit, trainName: string | undefined, repoPath: string): Promise<{
-  train: TrainDefinition;
+export async function resolveStack(git: SimpleGit, stackName: string | undefined, repoPath: string): Promise<{
+  stack: StackDefinition;
   config: ReturnType<typeof loadStackConfig>;
   currentBranch: string;
 }> {
   const config = loadStackConfig(repoPath);
   const currentBranch = await getCurrentBranch(git);
 
-  if (trainName) {
-    const train = findTrainByName(config, trainName);
-    if (!train) {
-      throw new Error(`Stack "${trainName}" not found.`);
+  if (stackName) {
+    const stack = findStackByName(config, stackName);
+    if (!stack) {
+      throw new Error(`Stack "${stackName}" not found.`);
     }
 
-    return { train, config, currentBranch };
+    return { stack, config, currentBranch };
   }
 
-  const resolved = config.trains.find((train) => train.branches.some((branch) => branch.name === currentBranch));
+  const resolved = config.stacks.find((stack) => stack.branches.some((branch) => branch.name === currentBranch));
   if (!resolved) {
     throw new Error(`Current branch "${currentBranch}" is not part of any configured stack.`);
   }
 
   return {
-    train: resolved,
+    stack: resolved,
     config,
     currentBranch,
   };
 }
 
-export function getMergedStatusBaseRef(train: TrainDefinition): string {
-  return train.prTarget;
+export function getMergedStatusBaseRef(stack: StackDefinition): string {
+  return stack.prTarget;
 }
 
 export function reconcileBranchStatusWithPr(branch: BranchStatus): BranchStatus {
@@ -65,7 +65,7 @@ export function reconcileBranchStatusWithPr(branch: BranchStatus): BranchStatus 
   };
 }
 
-export function applyCachedPrMetadata(branches: BranchStatus[], cachedState: CachedTrainState | null): BranchStatus[] {
+export function applyCachedPrMetadata(branches: BranchStatus[], cachedState: CachedStackState | null): BranchStatus[] {
   if (!cachedState) {
     return branches;
   }
@@ -87,19 +87,15 @@ export function applyCachedPrMetadata(branches: BranchStatus[], cachedState: Cac
 async function buildBranchStatus(
   git: SimpleGit,
   repoPath: string,
-  train: TrainDefinition,
+  stack: StackDefinition,
   currentBranch: string,
 ): Promise<BranchStatus[]> {
-  const mergedStatusBaseRef = getMergedStatusBaseRef(train);
-  const activeNames = new Set<string>();
+  const mergedStatusBaseRef = getMergedStatusBaseRef(stack);
   const statuses: BranchStatus[] = [];
 
-  for (const [index, branch] of train.branches.entries()) {
+  for (const [index, branch] of stack.branches.entries()) {
     const existsLocally = await branchExists(git, branch.name);
     const isMerged = existsLocally ? await isAncestor(git, branch.name, mergedStatusBaseRef).catch(() => false) : false;
-    if (!isMerged) {
-      activeNames.add(branch.name);
-    }
     statuses.push({
       name: branch.name,
       role: branch.role,
@@ -115,17 +111,17 @@ async function buildBranchStatus(
   return statuses;
 }
 
-export async function getTrainStatus(
+export async function getStackStatus(
   cwd: string,
-  trainName?: string,
+  stackName?: string,
   options?: {
     includePrMetadata?: boolean;
   },
-): Promise<TrainStatus> {
+): Promise<StackStatus> {
   const { git, repoPath } = await createRepoContext(cwd);
-  const { train, config, currentBranch } = await resolveTrain(git, trainName, repoPath);
-  const combinedBranch = await ensureCombinedBranch(git, train);
-  const branches = await buildBranchStatus(git, repoPath, train, currentBranch);
+  const { stack, config, currentBranch } = await resolveStack(git, stackName, repoPath);
+  const combinedBranch = await ensureCombinedBranch(git, stack);
+  const branches = await buildBranchStatus(git, repoPath, stack, currentBranch);
   const globalConfig = loadGlobalConfig();
   const warnings: string[] = [];
   const includePrMetadata = options?.includePrMetadata ?? true;
@@ -147,18 +143,18 @@ export async function getTrainStatus(
       warnings.push(error instanceof Error ? error.message : String(error));
     }
   } else {
-    const cachedState = readGlobalCachedState(repoPath, train.name);
+    const cachedState = readGlobalCachedState(repoPath, stack.name);
     const hydratedBranches = applyCachedPrMetadata(branches, cachedState);
     branches.splice(0, branches.length, ...hydratedBranches);
   }
 
-  const status: TrainStatus = {
+  const status: StackStatus = {
     repoPath,
-    train,
+    stack,
     currentBranch,
     remote: config.defaults.remote,
     strategy: config.defaults.sync.strategy,
-    combinedBranch: combinedBranch ?? resolveCombinedBranch(train),
+    combinedBranch: combinedBranch ?? resolveCombinedBranch(stack),
     branches,
     warnings,
   };
@@ -168,11 +164,11 @@ export async function getTrainStatus(
   return status;
 }
 
-export function activeBranches(status: TrainStatus): BranchStatus[] {
+export function activeBranches(status: StackStatus): BranchStatus[] {
   return status.branches.filter((branch) => branch.isActive);
 }
 
-export function normalActiveBranches(status: TrainStatus): BranchStatus[] {
-  const normalNames = new Set(normalBranches(status.train).map((branch) => branch.name));
+export function normalActiveBranches(status: StackStatus): BranchStatus[] {
+  const normalNames = new Set(normalBranches(status.stack).map((branch) => branch.name));
   return activeBranches(status).filter((branch) => normalNames.has(branch.name));
 }

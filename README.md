@@ -5,7 +5,7 @@
 - a CLI for operating on stacked branches inside a git repository
 - an MCP server for exposing stack metadata and stack operations to agents and other tooling
 
-It is designed as a more ergonomic successor to `pr-train`, with explicit subcommands, managed PR navigation sections, cached stack metadata, and an MCP interface that mirrors the core workflows.
+It is designed as a more ergonomic successor to earlier stacked-PR tooling, with explicit subcommands, managed PR navigation sections, cached stack metadata, and an MCP interface that mirrors the core workflows.
 
 ## Why Use It
 
@@ -52,16 +52,16 @@ Typical workflow:
   - [MCP Transport](#transport)
   - [MCP Resources](#resources)
   - [stack://repo/current/state](#stackrepocurrentstate)
-  - [stack://repo/current/trains](#stackrepocurrenttrains)
+  - [stack://repo/current/stacks](#stackrepocurrentstacks)
   - [stack://repo/current/help](#stackrepocurrenthelp)
   - [MCP Tools](#tools)
   - [stack_help](#stack_help)
-  - [stack_list_trains](#stack_list_trains)
-  - [stack_get_train](#stack_get_train)
+  - [stack_list_stacks](#stack_list_stacks)
+  - [stack_get_stack](#stack_get_stack)
   - [stack_validate](#stack_validate)
-  - [stack_sync_train](#stack_sync_train)
+  - [stack_sync_stack](#stack_sync_stack)
   - [stack_ensure_prs](#stack_ensure_prs)
-  - [stack_advance_train](#stack_advance_train)
+  - [stack_advance_stack](#stack_advance_stack)
   - [stack_checkout_branch](#stack_checkout_branch)
   - [stack_refresh_metadata](#stack_refresh_metadata)
 - [Additional Info](#additional-info)
@@ -95,7 +95,7 @@ It is responsible for:
 The CLI delegates to:
 
 - [src/operations.ts](/Users/slavko/git-stack/src/operations.ts:1) for command orchestration
-- [src/train.ts](/Users/slavko/git-stack/src/train.ts:1) for stack resolution and status assembly
+- [src/stack.ts](/Users/slavko/git-stack/src/stack.ts:1) for stack resolution and status assembly
 - [src/git.ts](/Users/slavko/git-stack/src/git.ts:1) for git helpers
 - [src/github.ts](/Users/slavko/git-stack/src/github.ts:1) for GitHub integration
 
@@ -581,14 +581,14 @@ Payload fields:
 
 - `version`
 - `updatedAt`
-- `trainName`
+- `stackName`
 - `currentBranch`
 - `remote`
 - `strategy`
 - `combinedBranch`
 - `branches[]`
 
-### `stack://repo/current/trains`
+### `stack://repo/current/stacks`
 
 Returns configured stack identifiers for the current repo.
 
@@ -618,7 +618,7 @@ Arguments:
 
 - `topic?: string`
 
-### `stack_list_trains`
+### `stack_list_stacks`
 
 Lists configured stacks.
 
@@ -626,13 +626,13 @@ Arguments:
 
 - `cwd?: string`
 
-### `stack_get_train`
+### `stack_get_stack`
 
 Returns computed stack status.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 
 ### `stack_validate`
@@ -641,16 +641,16 @@ Runs validation logic equivalent to the CLI `validate` command.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 
-### `stack_sync_train`
+### `stack_sync_stack`
 
 Runs stack synchronization.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 - `strategy?: "merge" | "rebase"`
 - `push?: boolean`
@@ -664,19 +664,19 @@ Creates or updates PRs.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 - `draft?: boolean`
 - `printUrls?: boolean`
 - `dryRun?: boolean`
 
-### `stack_advance_train`
+### `stack_advance_stack`
 
 Advances the lifecycle of a stack.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 - `push?: boolean`
 - `force?: boolean`
@@ -691,7 +691,7 @@ Checks out a branch from the resolved stack.
 Arguments:
 
 - `selector: string`
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 
 ### `stack_refresh_metadata`
@@ -700,7 +700,7 @@ Refreshes derived metadata and returns current status.
 
 Arguments:
 
-- `trainName?: string`
+- `stackName?: string`
 - `cwd?: string`
 
 ## Shared Result Shape
@@ -711,7 +711,7 @@ Most CLI JSON output and MCP tool responses serialize the same operation model:
 - `message: string`
 - `warnings: string[]`
 - `operations?: string[]`
-- `status?: TrainStatus`
+- `status?: StackStatus`
 
 ## Config API
 
@@ -908,7 +908,7 @@ Fields:
 
 - `version`
 - `updatedAt`
-- `trainName`
+- `stackName`
 - `currentBranch`
 - `remote`
 - `strategy`

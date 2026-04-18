@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { activeBranches, applyCachedPrMetadata, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/train.js";
+import { activeBranches, applyCachedPrMetadata, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/stack.js";
 import { resolveCheckoutSelector } from "../src/operations.js";
-import type { BranchStatus, CachedTrainState, TrainDefinition, TrainStatus } from "../src/types.js";
+import type { BranchStatus, CachedStackState, StackDefinition, StackStatus } from "../src/types.js";
 
-const trainDefinition: TrainDefinition = {
+const stackDefinition: StackDefinition = {
   name: "demo",
   syncBase: "feature-b",
   prTarget: "main",
@@ -14,14 +14,14 @@ const trainDefinition: TrainDefinition = {
   ],
 };
 
-const status: TrainStatus = {
+const status: StackStatus = {
   repoPath: "/tmp/repo",
   currentBranch: "feature-b",
   remote: "origin",
   strategy: "merge",
   combinedBranch: "combined",
   warnings: [],
-  train: trainDefinition,
+  stack: stackDefinition,
   branches: [
     {
       name: "feature-a",
@@ -55,7 +55,7 @@ const status: TrainStatus = {
 
 describe("active branch helpers", () => {
   it("uses prTarget rather than syncBase for merged-status ancestry", () => {
-    expect(getMergedStatusBaseRef(trainDefinition)).toBe("main");
+    expect(getMergedStatusBaseRef(stackDefinition)).toBe("main");
   });
 
   it("treats an open PR as not merged even if ancestry said merged", () => {
@@ -107,11 +107,11 @@ describe("active branch helpers", () => {
   });
 
   it("hydrates local-only status from cached PR metadata", () => {
-    const cachedState: CachedTrainState = {
+    const cachedState: CachedStackState = {
       version: 1,
       repoPath: "/tmp/repo",
       updatedAt: "2026-01-01T00:00:00.000Z",
-      trainName: "demo",
+      stackName: "demo",
       currentBranch: "feature-b",
       remote: "origin",
       strategy: "merge",

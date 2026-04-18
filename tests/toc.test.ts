@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { renderToc, upsertManagedToc } from "../src/toc.js";
-import type { TrainStatus } from "../src/types.js";
+import type { StackStatus } from "../src/types.js";
 
-function makeStatus(): TrainStatus {
+function makeStatus(): StackStatus {
   return {
     repoPath: "/tmp/repo",
     currentBranch: "feature-a",
@@ -10,7 +10,7 @@ function makeStatus(): TrainStatus {
     strategy: "merge",
     combinedBranch: "combined",
     warnings: [],
-    train: {
+    stack: {
       name: "demo",
       syncBase: "main",
       prTarget: "main",

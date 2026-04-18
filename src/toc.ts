@@ -1,4 +1,4 @@
-import type { BranchStatus, TrainStatus } from "./types.js";
+import type { BranchStatus, StackStatus } from "./types.js";
 import {
   GIT_CLOSED_ICON,
   GIT_DRAFT_ICON,
@@ -89,7 +89,7 @@ function renderBranchTable(branches: BranchStatus[], focusedBranchName: string |
   return lines;
 }
 
-export function renderToc(status: TrainStatus, focusedBranchName = status.currentBranch): string {
+export function renderToc(status: StackStatus, focusedBranchName = status.currentBranch): string {
   const active = status.branches.filter((branch) => branch.isActive);
   const merged = status.branches.filter((branch) => branch.isMerged && !branch.isActive);
 
@@ -109,7 +109,7 @@ export function renderToc(status: TrainStatus, focusedBranchName = status.curren
   return lines.join("\n");
 }
 
-export function upsertManagedToc(body: string, status: TrainStatus, focusedBranchName = status.currentBranch): string {
+export function upsertManagedToc(body: string, status: StackStatus, focusedBranchName = status.currentBranch): string {
   const nextToc = renderToc(status, focusedBranchName);
   if (body.includes(TOC_START) && body.includes(TOC_END)) {
     const startIndex = body.indexOf(TOC_START);

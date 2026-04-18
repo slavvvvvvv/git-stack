@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { simpleGit, type SimpleGit } from "simple-git";
-import type { BranchDefinition, SyncStrategy, TrainDefinition } from "./types.js";
+import type { BranchDefinition, StackDefinition, SyncStrategy } from "./types.js";
 
 export interface RepoContext {
   git: SimpleGit;
@@ -32,8 +32,8 @@ export async function branchExists(git: SimpleGit, branchName: string): Promise<
   return branches.includes(branchName);
 }
 
-export async function ensureCombinedBranch(git: SimpleGit, train: TrainDefinition): Promise<string | null> {
-  const combinedBranch = train.branches.find((branch) => branch.role === "combined");
+export async function ensureCombinedBranch(git: SimpleGit, stack: StackDefinition): Promise<string | null> {
+  const combinedBranch = stack.branches.find((branch) => branch.role === "combined");
   if (!combinedBranch) {
     return null;
   }
@@ -43,9 +43,9 @@ export async function ensureCombinedBranch(git: SimpleGit, train: TrainDefinitio
     return combinedBranch.name;
   }
 
-  const branchBeforeCombined = train.branches.at(-2);
+  const branchBeforeCombined = stack.branches.at(-2);
   if (!branchBeforeCombined) {
-    throw new Error(`Stack "${train.name}" does not have a source branch for combined branch "${combinedBranch.name}".`);
+    throw new Error(`Stack "${stack.name}" does not have a source branch for combined branch "${combinedBranch.name}".`);
   }
 
   await git.branch([combinedBranch.name, branchBeforeCombined.name]);
@@ -127,6 +127,6 @@ export async function ensureGitStateDir(git: SimpleGit): Promise<string> {
   return stackDir;
 }
 
-export function normalBranches(train: TrainDefinition): BranchDefinition[] {
-  return train.branches.filter((branch) => branch.role !== "combined");
+export function normalBranches(stack: StackDefinition): BranchDefinition[] {
+  return stack.branches.filter((branch) => branch.role !== "combined");
 }

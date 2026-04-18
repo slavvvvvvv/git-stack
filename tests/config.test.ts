@@ -51,8 +51,8 @@ stacks:
 
       const config = loadStackConfig(repoPath);
       expect(config.defaults.remote).toBe("upstream");
-      expect(config.trains[0]?.branches[0]?.name).toBe("alpha");
-      expect(resolveCombinedBranch(config.trains[0]!)).toBe("combined");
+      expect(config.stacks[0]?.branches[0]?.name).toBe("alpha");
+      expect(resolveCombinedBranch(config.stacks[0]!)).toBe("combined");
     });
   });
 
@@ -83,7 +83,7 @@ stacks:
       const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "git-stack-write-"));
       writeStackConfig(repoPath, {
         defaults: createDefaultRepoDefaults(),
-        trains: [
+        stacks: [
           {
             name: "demo",
             syncBase: "main",
@@ -97,8 +97,8 @@ stacks:
       });
 
       const config = loadStackConfig(repoPath);
-      expect(config.trains[0]?.name).toBe("demo");
-      expect(config.trains[0]?.branches[1]?.role).toBe("combined");
+      expect(config.stacks[0]?.name).toBe("demo");
+      expect(config.stacks[0]?.branches[1]?.role).toBe("combined");
     });
   });
 
@@ -107,7 +107,7 @@ stacks:
       const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "git-stack-write-order-"));
       writeStackConfig(repoPath, {
         defaults: createDefaultRepoDefaults(),
-        trains: [
+        stacks: [
           {
             name: "demo",
             syncBase: "main",
@@ -153,7 +153,7 @@ stacks:
       );
 
       const config = loadStackConfig(repoPath);
-      expect(config.trains[0]?.name).toBe("global-stack");
+      expect(config.stacks[0]?.name).toBe("global-stack");
     });
   });
 });

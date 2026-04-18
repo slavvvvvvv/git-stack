@@ -7,8 +7,8 @@ import type {
   BranchDefinition,
   GlobalConfig,
   RepoDefaults,
+  StackDefinition,
   StackConfig,
-  TrainDefinition,
 } from "./types.js";
 
 const branchItemSchema = z.union([
@@ -36,13 +36,13 @@ const repoDefaultsSchema = z.object({
       draft: z.boolean().default(false),
       printUrls: z.boolean().default(false),
       commentOnUpdate: z.string().nullable().default(null),
-      combinedTitleTemplate: z.string().trim().min(1).default("{{train.name}}"),
+      combinedTitleTemplate: z.string().trim().min(1).default("{{stack.name}}"),
     })
     .default({
       draft: false,
       printUrls: false,
       commentOnUpdate: null,
-      combinedTitleTemplate: "{{train.name}}",
+      combinedTitleTemplate: "{{stack.name}}",
     }),
   lifecycle: z
     .object({
@@ -55,7 +55,7 @@ const repoDefaultsSchema = z.object({
     }),
 });
 
-const trainSchema = z.object({
+const stackSchema = z.object({
   syncBase: z.string().trim().min(1),
   prTarget: z.string().trim().min(1),
   branches: z.array(branchItemSchema).min(1),
@@ -63,8 +63,7 @@ const trainSchema = z.object({
 
 const stackConfigSchema = z.object({
   defaults: z.unknown().optional(),
-  stacks: z.record(z.string().trim().min(1), trainSchema).optional(),
-  trains: z.record(z.string().trim().min(1), trainSchema).optional(),
+  stacks: z.record(z.string().trim().min(1), stackSchema).optional(),
 });
 
 const globalConfigSchema = z.object({
@@ -93,16 +92,16 @@ function branchDefinitionFromInput(input: string | { name: string; role?: "norma
   };
 }
 
-function normalizeTrain(name: string, raw: z.infer<typeof trainSchema>): TrainDefinition {
+function normalizeStack(name: string, raw: z.infer<typeof stackSchema>): StackDefinition {
   const branches = raw.branches.map(branchDefinitionFromInput);
   const combinedBranches = branches.filter((branch) => branch.role === "combined");
   if (combinedBranches.length > 1) {
-    throw new Error(`Train "${name}" has more than one combined branch.`);
+    throw new Error(`Stack "${name}" has more than one combined branch.`);
   }
 
   const combinedBranch = combinedBranches[0];
   if (combinedBranch && branches[branches.length - 1]?.name !== combinedBranch.name) {
-    throw new Error(`Train "${name}" must place the combined branch last.`);
+    throw new Error(`Stack "${name}" must place the combined branch last.`);
   }
 
   return {
@@ -130,7 +129,7 @@ function mergeDefaults(globalDefaults: Partial<RepoDefaults> | undefined, repoDe
       combinedTitleTemplate:
         repoDefaults.prs.combinedTitleTemplate ||
         globalDefaults?.prs?.combinedTitleTemplate ||
-        "{{train.name}}",
+        "{{stack.name}}",
     },
     lifecycle: {
       keepMergedInToc: repoDefaults.lifecycle.keepMergedInToc ?? globalDefaults?.lifecycle?.keepMergedInToc ?? true,
@@ -191,15 +190,15 @@ export function loadStackConfig(repoPath: string): StackConfig {
   const globalConfig = loadGlobalConfig();
   const parsed = stackConfigSchema.parse(parseYamlFile(configPath));
   const defaults = mergeDefaults(globalConfig.defaults, parsed.defaults as Partial<RepoDefaults> | undefined);
-  const rawStacks = parsed.stacks ?? parsed.trains;
+  const rawStacks = parsed.stacks;
   if (!rawStacks || Object.keys(rawStacks).length === 0) {
     throw new Error(`Config file at ${configPath} does not define any stacks.`);
   }
-  const trains = Object.entries(rawStacks).map(([name, train]) => normalizeTrain(name, train));
+  const stacks = Object.entries(rawStacks).map(([name, stack]) => normalizeStack(name, stack));
 
   return {
     defaults,
-    trains,
+    stacks,
   };
 }
 
@@ -209,12 +208,12 @@ export function writeStackConfig(repoPath: string, config: StackConfig): void {
   const serialized = {
     defaults: config.defaults,
     stacks: Object.fromEntries(
-      config.trains.map((train) => [
-        train.name,
+      config.stacks.map((stack) => [
+        stack.name,
         {
-          syncBase: train.syncBase,
-          prTarget: train.prTarget,
-          branches: train.branches.map((branch) => {
+          syncBase: stack.syncBase,
+          prTarget: stack.prTarget,
+          branches: stack.branches.map((branch) => {
             if (branch.role === "combined") {
               return {
                 name: branch.name,
@@ -238,12 +237,12 @@ export function writeTemplateConfig(targetPath: string): void {
   fs.copyFileSync(sourcePath, targetPath);
 }
 
-export function findTrainByName(config: StackConfig, name: string): TrainDefinition | undefined {
-  return config.trains.find((train) => train.name === name);
+export function findStackByName(config: StackConfig, name: string): StackDefinition | undefined {
+  return config.stacks.find((stack) => stack.name === name);
 }
 
-export function resolveCombinedBranch(train: TrainDefinition): string | null {
-  const combined = train.branches.find((branch) => branch.role === "combined");
+export function resolveCombinedBranch(stack: StackDefinition): string | null {
+  const combined = stack.branches.find((branch) => branch.role === "combined");
   if (!combined) {
     return null;
   }

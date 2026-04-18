@@ -17,18 +17,18 @@ import {
   pushBranches,
 } from "./git.js";
 import { writeCachedState } from "./state.js";
-import { getTrainStatus, normalActiveBranches, resolveTrain } from "./train.js";
+import { getStackStatus, normalActiveBranches, resolveStack } from "./stack.js";
 import type {
   AdvanceOptions,
   EnsurePrsOptions,
   OperationResult,
   RestackOptions,
+  StackStatus,
   SyncOptions,
-  TrainStatus,
 } from "./types.js";
 
-export async function validateRepo(cwd: string, trainName?: string): Promise<OperationResult> {
-  const status = await getTrainStatus(cwd, trainName);
+export async function validateRepo(cwd: string, stackName?: string): Promise<OperationResult> {
+  const status = await getStackStatus(cwd, stackName);
   const missingBranches = status.branches.filter((branch) => !branch.existsLocally).map((branch) => branch.name);
   const warnings = [...status.warnings];
   if (missingBranches.length > 0) {
@@ -43,15 +43,15 @@ export async function validateRepo(cwd: string, trainName?: string): Promise<Ope
   };
 }
 
-export async function syncTrain(cwd: string, trainName: string | undefined, options: SyncOptions): Promise<OperationResult> {
+export async function syncStack(cwd: string, stackName: string | undefined, options: SyncOptions): Promise<OperationResult> {
   const { git, repoPath } = await createRepoContext(cwd);
-  const { train, config } = await resolveTrain(git, trainName, repoPath);
+  const { stack, config } = await resolveStack(git, stackName, repoPath);
   const currentBranch = await getCurrentBranch(git);
   const strategy = options.strategy ?? config.defaults.sync.strategy;
-  const combinedBranch = await ensureCombinedBranch(git, train);
+  const combinedBranch = await ensureCombinedBranch(git, stack);
   const operations: string[] = [];
-  const branches = train.branches.map((branch) => branch.name);
-  const branchesToSync = options.includeMerged ? branches : await getUnmergedBranches(git, branches, train.syncBase);
+  const branches = stack.branches.map((branch) => branch.name);
+  const branchesToSync = options.includeMerged ? branches : await getUnmergedBranches(git, branches, stack.syncBase);
 
   for (let index = 0; index < branchesToSync.length - 1; index += 1) {
     const fromBranch = branchesToSync[index];
@@ -82,7 +82,7 @@ export async function syncTrain(cwd: string, trainName: string | undefined, opti
     await checkoutBranch(git, currentBranch);
   }
 
-  const status = await getTrainStatus(cwd, train.name);
+  const status = await getStackStatus(cwd, stack.name);
   await writeCachedState(git, status);
 
   return {
@@ -97,19 +97,19 @@ export async function syncTrain(cwd: string, trainName: string | undefined, opti
   };
 }
 
-export async function ensureTrainPrs(
+export async function ensureStackPrs(
   cwd: string,
-  trainName: string | undefined,
+  stackName: string | undefined,
   options: EnsurePrsOptions,
 ): Promise<OperationResult> {
   const { git, repoPath } = await createRepoContext(cwd);
-  const { train, config } = await resolveTrain(git, trainName, repoPath);
+  const { stack, config } = await resolveStack(git, stackName, repoPath);
   const globalConfig = loadGlobalConfig();
   const { octokit, coords } = await createOctokit(git, config.defaults, globalConfig.github?.token);
   const ownerResponse = await octokit.repos.get({ owner: coords.owner, repo: coords.repo });
   const owner = ownerResponse.data.owner.login;
-  const status = await getTrainStatus(cwd, train.name);
-  const result = await ensurePullRequests(git, octokit, coords, owner, train, status, config.defaults, options);
+  const status = await getStackStatus(cwd, stack.name);
+  const result = await ensurePullRequests(git, octokit, coords, owner, stack, status, config.defaults, options);
   await writeCachedState(git, result.status);
 
   return {
@@ -129,15 +129,15 @@ function computeAdvanceComment(explicitComment: string | null | undefined, confi
   return configuredComment;
 }
 
-export async function advanceTrain(
+export async function advanceStack(
   cwd: string,
-  trainName: string | undefined,
+  stackName: string | undefined,
   options: AdvanceOptions,
 ): Promise<OperationResult> {
   const { git, repoPath } = await createRepoContext(cwd);
-  const { train, config } = await resolveTrain(git, trainName, repoPath);
+  const { stack, config } = await resolveStack(git, stackName, repoPath);
   const globalConfig = loadGlobalConfig();
-  const status = await getTrainStatus(cwd, train.name);
+  const status = await getStackStatus(cwd, stack.name);
   const operations: string[] = [];
   const activeNormal = normalActiveBranches(status);
   const mergedBranches = status.branches.filter((branch) => branch.isMerged && branch.role !== "combined");
@@ -153,10 +153,10 @@ export async function advanceTrain(
     };
   }
 
-  operations.push(`advance-head:${nextHead.name}->${train.syncBase}`);
+  operations.push(`advance-head:${nextHead.name}->${stack.syncBase}`);
   if (!options.dryRun) {
     await checkoutBranch(git, nextHead.name);
-    await git.rebase([train.syncBase]);
+    await git.rebase([stack.syncBase]);
   }
 
   const descendants = activeNormal.slice(1).map((branch) => branch.name);
@@ -170,7 +170,7 @@ export async function advanceTrain(
     previous = branchName;
   }
 
-  const combinedBranch = await ensureCombinedBranch(git, train);
+  const combinedBranch = await ensureCombinedBranch(git, stack);
   if (combinedBranch && previous !== combinedBranch) {
     operations.push(`rebase-combined:${combinedBranch}->${previous}`);
     if (!options.dryRun) {
@@ -187,7 +187,7 @@ export async function advanceTrain(
     }
   }
 
-  const updatedStatus = await getTrainStatus(cwd, train.name);
+  const updatedStatus = await getStackStatus(cwd, stack.name);
   const remainingActive = updatedStatus.branches.filter((branch) => branch.isActive);
   const { octokit, coords } = await createOctokit(git, config.defaults, globalConfig.github?.token);
   const commentBody = computeAdvanceComment(options.commentUpdatedPrs, config.defaults.prs.commentOnUpdate);
@@ -197,7 +197,7 @@ export async function advanceTrain(
       continue;
     }
 
-    const newBase = index === 0 || branch.role === "combined" ? train.prTarget : remainingActive[index - 1]?.name ?? train.prTarget;
+    const newBase = index === 0 || branch.role === "combined" ? stack.prTarget : remainingActive[index - 1]?.name ?? stack.prTarget;
     if (branch.pr.baseBranch !== newBase) {
       operations.push(`retarget-pr:${branch.name}->${newBase}`);
       if (!options.dryRun) {
@@ -235,16 +235,16 @@ export async function advanceTrain(
   };
 }
 
-export async function checkoutTrainBranch(
+export async function checkoutStackBranch(
   cwd: string,
-  trainName: string | undefined,
+  stackName: string | undefined,
   selector: string,
 ): Promise<OperationResult> {
   const { git, repoPath } = await createRepoContext(cwd);
   const config = loadStackConfig(repoPath);
-  const selectorStackName = config.trains.find((train) => train.name === selector)?.name;
-  const resolvedStackName = trainName ?? selectorStackName;
-  const status = await getTrainStatus(cwd, resolvedStackName, { includePrMetadata: false });
+  const selectorStackName = config.stacks.find((stack) => stack.name === selector)?.name;
+  const resolvedStackName = stackName ?? selectorStackName;
+  const status = await getStackStatus(cwd, resolvedStackName, { includePrMetadata: false });
   const targetBranch = resolveCheckoutSelector(status, selector);
 
   if (!targetBranch) {
@@ -252,7 +252,7 @@ export async function checkoutTrainBranch(
   }
 
   await checkoutBranch(git, targetBranch);
-  const nextStatus = await getTrainStatus(cwd, status.train.name, { includePrMetadata: false });
+  const nextStatus = await getStackStatus(cwd, status.stack.name, { includePrMetadata: false });
 
   return {
     ok: true,
@@ -262,12 +262,12 @@ export async function checkoutTrainBranch(
   };
 }
 
-export function resolveCheckoutSelector(status: TrainStatus, selector: string): string | undefined {
+export function resolveCheckoutSelector(status: StackStatus, selector: string): string | undefined {
   if (selector === "current") {
     return status.currentBranch;
   }
 
-  if (selector === status.train.name) {
+  if (selector === status.stack.name) {
     return status.branches[0]?.name;
   }
 
@@ -300,8 +300,8 @@ export function resolveCheckoutSelector(status: TrainStatus, selector: string): 
   return status.branches.find((branch) => branch.name === selector)?.name;
 }
 
-export async function statusOperation(cwd: string, trainName?: string): Promise<OperationResult> {
-  const status = await getTrainStatus(cwd, trainName);
+export async function statusOperation(cwd: string, stackName?: string): Promise<OperationResult> {
+  const status = await getStackStatus(cwd, stackName);
   return {
     ok: true,
     message: "Status resolved.",
@@ -310,14 +310,14 @@ export async function statusOperation(cwd: string, trainName?: string): Promise<
   };
 }
 
-export async function listTrainsOperation(cwd: string): Promise<OperationResult> {
+export async function listStacksOperation(cwd: string): Promise<OperationResult> {
   const { repoPath } = await createRepoContext(cwd);
   const config = loadStackConfig(repoPath);
   return {
     ok: true,
     message: "Stacks listed.",
     warnings: [],
-    operations: config.trains.map((train) => `stack:${train.name}`),
+    operations: config.stacks.map((stack) => `stack:${stack.name}`),
   };
 }
 
@@ -395,7 +395,7 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
 
   const { git, repoPath } = await createRepoContext(cwd);
   const currentBranch = await getCurrentBranch(git);
-  const trainName = branchNames[0] ?? "";
+  const stackName = branchNames[0] ?? "";
 
   for (const branchName of branchNames) {
     if (await branchExists(git, branchName)) {
@@ -405,15 +405,15 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
 
   const configPath = getGlobalStacksPath();
   let defaults = createDefaultRepoDefaults();
-  let trains = [] as ReturnType<typeof loadStackConfig>["trains"];
+  let stacks = [] as ReturnType<typeof loadStackConfig>["stacks"];
 
   if (await import("node:fs").then((mod) => mod.existsSync(configPath))) {
     const loadedConfig = loadStackConfig(repoPath);
-    if (loadedConfig.trains.some((train) => train.name === trainName)) {
-      throw new Error(`Stack "${trainName}" already exists in ${configPath}.`);
+    if (loadedConfig.stacks.some((stack) => stack.name === stackName)) {
+      throw new Error(`Stack "${stackName}" already exists in ${configPath}.`);
     }
     defaults = loadedConfig.defaults;
-    trains = loadedConfig.trains;
+    stacks = loadedConfig.stacks;
   }
 
   const operations: string[] = [];
@@ -424,14 +424,14 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
     parentRef = branchName;
   }
 
-  await checkoutBranch(git, trainName);
+  await checkoutBranch(git, stackName);
 
   writeStackConfig(repoPath, {
     defaults,
-    trains: [
-      ...trains,
+    stacks: [
+      ...stacks,
       {
-        name: trainName,
+        name: stackName,
         syncBase: currentBranch,
         prTarget: currentBranch,
         branches: branchNames.map((name) => ({ name, role: "normal" })),
@@ -439,40 +439,40 @@ export async function createStack(cwd: string, branchNames: string[]): Promise<O
     ],
   });
 
-  operations.push(`write-stack:${trainName}`);
+  operations.push(`write-stack:${stackName}`);
 
   return {
     ok: true,
-    message: `Created stack "${trainName}" from ${currentBranch}.`,
+    message: `Created stack "${stackName}" from ${currentBranch}.`,
     warnings: [],
     operations,
   };
 }
 
-export async function pushBranchOntoTrain(cwd: string, trainName: string): Promise<OperationResult> {
+export async function addBranchToStack(cwd: string, stackName: string): Promise<OperationResult> {
   const { git, repoPath } = await createRepoContext(cwd);
   const config = loadStackConfig(repoPath);
   const currentBranch = await getCurrentBranch(git);
-  const targetTrain = config.trains.find((train) => train.name === trainName);
+  const targetStack = config.stacks.find((stack) => stack.name === stackName);
 
-  if (!targetTrain) {
-    throw new Error(`Stack "${trainName}" was not found.`);
+  if (!targetStack) {
+    throw new Error(`Stack "${stackName}" was not found.`);
   }
 
-  const existingTrainWithBranch = config.trains.find((train) =>
-    train.branches.some((branch) => branch.name === currentBranch),
+  const existingStackWithBranch = config.stacks.find((stack) =>
+    stack.branches.some((branch) => branch.name === currentBranch),
   );
-  if (existingTrainWithBranch) {
-    if (existingTrainWithBranch.name === trainName) {
-      throw new Error(`Branch "${currentBranch}" is already part of stack "${trainName}".`);
+  if (existingStackWithBranch) {
+    if (existingStackWithBranch.name === stackName) {
+      throw new Error(`Branch "${currentBranch}" is already part of stack "${stackName}".`);
     }
     throw new Error(
-      `Branch "${currentBranch}" is already part of stack "${existingTrainWithBranch.name}" and cannot be added to "${trainName}".`,
+      `Branch "${currentBranch}" is already part of stack "${existingStackWithBranch.name}" and cannot be added to "${stackName}".`,
     );
   }
 
-  const combinedIndex = targetTrain.branches.findIndex((branch) => branch.role === "combined");
-  const nextBranches = [...targetTrain.branches];
+  const combinedIndex = targetStack.branches.findIndex((branch) => branch.role === "combined");
+  const nextBranches = [...targetStack.branches];
   if (combinedIndex >= 0) {
     nextBranches.splice(combinedIndex, 0, { name: currentBranch, role: "normal" });
   } else {
@@ -481,13 +481,13 @@ export async function pushBranchOntoTrain(cwd: string, trainName: string): Promi
 
   writeStackConfig(repoPath, {
     defaults: config.defaults,
-    trains: config.trains.map((train) => {
-      if (train.name !== trainName) {
-        return train;
+    stacks: config.stacks.map((stack) => {
+      if (stack.name !== stackName) {
+        return stack;
       }
 
       return {
-        ...train,
+        ...stack,
         branches: nextBranches,
       };
     }),
@@ -495,18 +495,18 @@ export async function pushBranchOntoTrain(cwd: string, trainName: string): Promi
 
   return {
     ok: true,
-    message: `Added branch "${currentBranch}" to stack "${trainName}".`,
+    message: `Added branch "${currentBranch}" to stack "${stackName}".`,
     warnings: [],
-    operations: [`add-branch:${currentBranch}->${trainName}`],
+    operations: [`add-branch:${currentBranch}->${stackName}`],
   };
 }
 
-export async function pushTrain(
+export async function pushStack(
   cwd: string,
-  trainName: string | undefined,
+  stackName: string | undefined,
   options: SyncOptions & EnsurePrsOptions,
 ): Promise<OperationResult> {
-  const syncResult = await syncTrain(cwd, trainName, {
+  const syncResult = await syncStack(cwd, stackName, {
     strategy: options.strategy,
     push: true,
     force: options.force,
@@ -518,7 +518,7 @@ export async function pushTrain(
     return syncResult;
   }
 
-  const ensureResult = await ensureTrainPrs(cwd, trainName, {
+  const ensureResult = await ensureStackPrs(cwd, stackName, {
     draft: options.draft,
     printUrls: options.printUrls,
     dryRun: options.dryRun,
@@ -533,7 +533,7 @@ export async function pushTrain(
   };
 }
 
-function resolveRestackBoundaryIndex(status: TrainStatus, selector: string): number {
+function resolveRestackBoundaryIndex(status: StackStatus, selector: string): number {
   const resolvedBranch = resolveCheckoutSelector(status, selector);
   if (!resolvedBranch) {
     throw new Error(`Could not resolve restack selector "${selector}".`);
@@ -541,19 +541,19 @@ function resolveRestackBoundaryIndex(status: TrainStatus, selector: string): num
 
   const index = status.branches.findIndex((branch) => branch.name === resolvedBranch);
   if (index < 0) {
-    throw new Error(`Branch "${resolvedBranch}" is not part of stack "${status.train.name}".`);
+    throw new Error(`Branch "${resolvedBranch}" is not part of stack "${status.stack.name}".`);
   }
 
   return index;
 }
 
-export async function restackTrain(
+export async function restackStack(
   cwd: string,
   stackName: string | undefined,
   options: RestackOptions,
 ): Promise<OperationResult> {
   const { git } = await createRepoContext(cwd);
-  const status = await getTrainStatus(cwd, stackName, { includePrMetadata: false });
+  const status = await getStackStatus(cwd, stackName, { includePrMetadata: false });
   const originalBranch = status.currentBranch;
   const fromIndex = resolveRestackBoundaryIndex(status, options.from ?? "current");
   const combinedIndex = status.branches.findIndex((branch) => branch.role === "combined");
@@ -594,7 +594,7 @@ export async function restackTrain(
     await checkoutBranch(git, checkoutTarget);
   }
 
-  const nextStatus = await getTrainStatus(cwd, status.train.name, { includePrMetadata: false });
+  const nextStatus = await getStackStatus(cwd, status.stack.name, { includePrMetadata: false });
   return {
     ok: true,
     message: `Restacked downstream branches from ${status.branches[fromIndex]?.name}.`,

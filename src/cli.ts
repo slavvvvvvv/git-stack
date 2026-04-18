@@ -5,17 +5,18 @@ import pkg from "../package.json" with { type: "json" };
 import { printResult, printStepResult, runStepWithOutput, runWithOutput } from "./cli-ui.js";
 import { installMcpIntoTarget, type McpInstallTarget } from "./install.js";
 import {
-  advanceTrain,
-  checkoutTrainBranch,
+  addBranchToStack,
+  advanceStack,
+  checkoutStackBranch,
   createStack,
-  ensureTrainPrs,
+  ensureStackPrs,
   helpOperation,
   initConfig,
   openConfigInEditor,
-  pushBranchOntoTrain,
-  restackTrain,
+  pushStack,
+  restackStack,
   statusOperation,
-  syncTrain,
+  syncStack,
   validateRepo,
 } from "./operations.js";
 import { startMcpServer } from "./mcp.js";
@@ -27,21 +28,21 @@ program.option("--json", "print JSON output");
 
 program
   .command("init")
-  .description("Create a .stack.yml config from the bundled template")
+  .description("Create the global stacks config from the bundled template")
   .action(async () => {
     await runWithOutput(initConfig(process.cwd()), program.opts().json ?? false, "Creating stack config");
   });
 
 program
   .command("config")
-  .description("Open the repo .stack.yml in the configured editor")
+  .description("Open the global stacks config in the configured editor")
   .action(async () => {
     await runWithOutput(openConfigInEditor(process.cwd()), program.opts().json ?? false, "Opening stack config");
   });
 
 program
   .command("create <branches...>")
-  .description("Create a new stack from the current branch and add it to .stack.yml")
+  .description("Create a new stack from the current branch and add it to the global stacks file")
   .action(async (branches: string[]) => {
     await runWithOutput(createStack(process.cwd(), branches), program.opts().json ?? false, "Creating stack");
   });
@@ -50,7 +51,7 @@ program
   .command("add <stack>")
   .description("Add the current branch onto an existing stack by name")
   .action(async (stack: string) => {
-    await runWithOutput(pushBranchOntoTrain(process.cwd(), stack), program.opts().json ?? false, "Updating stack");
+    await runWithOutput(addBranchToStack(process.cwd(), stack), program.opts().json ?? false, "Updating stack");
   });
 
 program
@@ -76,7 +77,7 @@ program
       const asJson = program.opts().json ?? false;
 
       const syncResult = await runStepWithOutput(
-        syncTrain(process.cwd(), options.stack, {
+        syncStack(process.cwd(), options.stack, {
           strategy: options.strategy,
           push: true,
           force: options.force,
@@ -96,7 +97,7 @@ program
           return;
         }
 
-        const ensureResult = await ensureTrainPrs(process.cwd(), options.stack, {
+        const ensureResult = await ensureStackPrs(process.cwd(), options.stack, {
           draft: options.ready ? false : options.draft,
           printUrls: options.printUrls,
         });
@@ -121,7 +122,7 @@ program
       }
 
       const ensureResult = await runStepWithOutput(
-        ensureTrainPrs(process.cwd(), options.stack, {
+        ensureStackPrs(process.cwd(), options.stack, {
           draft: options.ready ? false : options.draft,
           printUrls: options.printUrls,
         }),
@@ -164,7 +165,7 @@ program
       checkout?: "original" | "last";
     }) => {
       await runWithOutput(
-        restackTrain(process.cwd(), options.stack, {
+        restackStack(process.cwd(), options.stack, {
           from: options.from,
           to: options.to,
           includeCombined: options.includeCombined,
@@ -209,7 +210,7 @@ program
   .option("--include-merged", "include merged branches in sync")
   .action(async (options: { stack?: string; strategy?: "merge" | "rebase"; push?: boolean; force?: boolean; includeMerged?: boolean }) => {
     await runWithOutput(
-      syncTrain(process.cwd(), options.stack, {
+      syncStack(process.cwd(), options.stack, {
         strategy: options.strategy,
         push: options.push,
         force: options.force,
@@ -229,7 +230,7 @@ prs
   .option("--print-urls", "print PR URLs in operations")
   .action(async (options: { stack?: string; draft?: boolean; ready?: boolean; printUrls?: boolean }) => {
     await runWithOutput(
-      ensureTrainPrs(process.cwd(), options.stack, {
+      ensureStackPrs(process.cwd(), options.stack, {
         draft: options.ready ? false : options.draft,
         printUrls: options.printUrls,
       }),
@@ -254,7 +255,7 @@ program
     commentUpdatedPrs?: string;
   }) => {
     await runWithOutput(
-      advanceTrain(process.cwd(), options.stack, {
+      advanceStack(process.cwd(), options.stack, {
         push: options.push,
         force: options.force,
         closeMergedPrs: options.closeMergedPrs,
@@ -271,8 +272,8 @@ function registerCheckoutCommand(commandName: string): void {
     .description("Checkout a branch by first, last, next, previous, index, name, or 'combined'")
     .option("--stack <name>", "stack name")
     .action(async (selector: string, options: { stack?: string }) => {
-      await runWithOutput(checkoutTrainBranch(process.cwd(), options.stack, selector), program.opts().json ?? false, "Checking out branch");
-    });
+      await runWithOutput(checkoutStackBranch(process.cwd(), options.stack, selector), program.opts().json ?? false, "Checking out branch");
+  });
 }
 
 registerCheckoutCommand("checkout");

@@ -39,7 +39,7 @@ export function printResult(result: OperationResult, asJson: boolean): void {
 
   if (result.status) {
     console.log("");
-    console.log(chalk.bold(`Stack: ${result.status.train.name}`));
+    console.log(chalk.bold(`Stack: ${result.status.stack.name}`));
     console.log(`${chalk.dim("Current branch:")} ${result.status.currentBranch}`);
 
     const table = new Table({

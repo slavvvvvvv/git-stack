@@ -2,13 +2,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import {
-  advanceTrain,
-  checkoutTrainBranch,
-  ensureTrainPrs,
+  advanceStack,
+  checkoutStackBranch,
+  ensureStackPrs,
   helpOperation,
-  listTrainsOperation,
+  listStacksOperation,
   statusOperation,
-  syncTrain,
+  syncStack,
   validateRepo,
 } from "./operations.js";
 import { readCachedState } from "./state.js";
@@ -22,18 +22,18 @@ function normalizeResult<T>(result: T): { content: Array<{ type: "text"; text: s
 
 const MCP_RESOURCES = [
   "stack://repo/current/state",
-  "stack://repo/current/trains",
+  "stack://repo/current/stacks",
   "stack://repo/current/help",
 ];
 
 const MCP_TOOLS = [
   "stack_help",
-  "stack_list_trains",
-  "stack_get_train",
+  "stack_list_stacks",
+  "stack_get_stack",
   "stack_validate",
-  "stack_sync_train",
+  "stack_sync_stack",
   "stack_ensure_prs",
-  "stack_advance_train",
+  "stack_advance_stack",
   "stack_checkout_branch",
   "stack_refresh_metadata",
 ];
@@ -88,12 +88,12 @@ export async function startMcpServer(cwd: string): Promise<void> {
     };
   });
 
-  server.resource("stack-trains", "stack://repo/current/trains", async () => {
-    const result = await listTrainsOperation(cwd);
+  server.resource("stack-stacks", "stack://repo/current/stacks", async () => {
+    const result = await listStacksOperation(cwd);
     return {
       contents: [
         {
-          uri: "stack://repo/current/trains",
+          uri: "stack://repo/current/stacks",
           mimeType: "application/json",
           text: JSON.stringify(
             {
@@ -129,35 +129,35 @@ export async function startMcpServer(cwd: string): Promise<void> {
   );
 
   server.tool(
-    "stack_list_trains",
+    "stack_list_stacks",
     {
       cwd: z.string().optional(),
     },
-    async ({ cwd: toolCwd }) => normalizeResult(await listTrainsOperation(toolCwd ?? cwd)),
+    async ({ cwd: toolCwd }) => normalizeResult(await listStacksOperation(toolCwd ?? cwd)),
   );
 
   server.tool(
-    "stack_get_train",
+    "stack_get_stack",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
     },
-    async ({ trainName, cwd: toolCwd }) => normalizeResult(await statusOperation(toolCwd ?? cwd, trainName)),
+    async ({ stackName, cwd: toolCwd }) => normalizeResult(await statusOperation(toolCwd ?? cwd, stackName)),
   );
 
   server.tool(
     "stack_validate",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
     },
-    async ({ trainName, cwd: toolCwd }) => normalizeResult(await validateRepo(toolCwd ?? cwd, trainName)),
+    async ({ stackName, cwd: toolCwd }) => normalizeResult(await validateRepo(toolCwd ?? cwd, stackName)),
   );
 
   server.tool(
-    "stack_sync_train",
+    "stack_sync_stack",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
       strategy: z.enum(["merge", "rebase"]).optional(),
       push: z.boolean().optional(),
@@ -165,25 +165,25 @@ export async function startMcpServer(cwd: string): Promise<void> {
       includeMerged: z.boolean().optional(),
       dryRun: z.boolean().optional(),
     },
-    async ({ trainName, cwd: toolCwd, ...options }) => normalizeResult(await syncTrain(toolCwd ?? cwd, trainName, options)),
+    async ({ stackName, cwd: toolCwd, ...options }) => normalizeResult(await syncStack(toolCwd ?? cwd, stackName, options)),
   );
 
   server.tool(
     "stack_ensure_prs",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
       draft: z.boolean().optional(),
       printUrls: z.boolean().optional(),
       dryRun: z.boolean().optional(),
     },
-    async ({ trainName, cwd: toolCwd, ...options }) => normalizeResult(await ensureTrainPrs(toolCwd ?? cwd, trainName, options)),
+    async ({ stackName, cwd: toolCwd, ...options }) => normalizeResult(await ensureStackPrs(toolCwd ?? cwd, stackName, options)),
   );
 
   server.tool(
-    "stack_advance_train",
+    "stack_advance_stack",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
       push: z.boolean().optional(),
       force: z.boolean().optional(),
@@ -191,27 +191,27 @@ export async function startMcpServer(cwd: string): Promise<void> {
       commentUpdatedPrs: z.string().nullable().optional(),
       dryRun: z.boolean().optional(),
     },
-    async ({ trainName, cwd: toolCwd, ...options }) => normalizeResult(await advanceTrain(toolCwd ?? cwd, trainName, options)),
+    async ({ stackName, cwd: toolCwd, ...options }) => normalizeResult(await advanceStack(toolCwd ?? cwd, stackName, options)),
   );
 
   server.tool(
     "stack_checkout_branch",
     {
       selector: z.string(),
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
     },
-    async ({ selector, trainName, cwd: toolCwd }) =>
-      normalizeResult(await checkoutTrainBranch(toolCwd ?? cwd, trainName, selector)),
+    async ({ selector, stackName, cwd: toolCwd }) =>
+      normalizeResult(await checkoutStackBranch(toolCwd ?? cwd, stackName, selector)),
   );
 
   server.tool(
     "stack_refresh_metadata",
     {
-      trainName: z.string().optional(),
+      stackName: z.string().optional(),
       cwd: z.string().optional(),
     },
-    async ({ trainName, cwd: toolCwd }) => normalizeResult(await statusOperation(toolCwd ?? cwd, trainName)),
+    async ({ stackName, cwd: toolCwd }) => normalizeResult(await statusOperation(toolCwd ?? cwd, stackName)),
   );
 
   const transport = new StdioServerTransport();

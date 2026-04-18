@@ -27,7 +27,7 @@ export interface RepoDefaults {
   };
 }
 
-export interface TrainDefinition {
+export interface StackDefinition {
   name: string;
   syncBase: string;
   prTarget: string;
@@ -36,7 +36,7 @@ export interface TrainDefinition {
 
 export interface StackConfig {
   defaults: RepoDefaults;
-  trains: TrainDefinition[];
+  stacks: StackDefinition[];
 }
 
 export interface GlobalConfig {
@@ -70,9 +70,9 @@ export interface BranchStatus {
   pr?: PullRequestMetadata;
 }
 
-export interface TrainStatus {
+export interface StackStatus {
   repoPath: string;
-  train: TrainDefinition;
+  stack: StackDefinition;
   currentBranch: string;
   remote: string;
   strategy: SyncStrategy;
@@ -81,11 +81,11 @@ export interface TrainStatus {
   warnings: string[];
 }
 
-export interface CachedTrainState {
+export interface CachedStackState {
   version: 1;
   repoPath?: string;
   updatedAt: string;
-  trainName: string;
+  stackName: string;
   currentBranch: string;
   remote: string;
   strategy: SyncStrategy;
@@ -98,16 +98,16 @@ export interface CachedTrainState {
   }>;
 }
 
-export interface GlobalCachedTrainStateFile {
+export interface GlobalCachedStackStateFile {
   version: 1;
-  entries: Record<string, CachedTrainState>;
+  entries: Record<string, CachedStackState>;
 }
 
 export interface OperationResult {
   ok: boolean;
   message: string;
   warnings: string[];
-  status?: TrainStatus;
+  status?: StackStatus;
   operations?: string[];
 }
 

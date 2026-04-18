@@ -7,8 +7,8 @@ import type {
   EnsurePrsOptions,
   PullRequestMetadata,
   RepoDefaults,
-  TrainDefinition,
-  TrainStatus,
+  StackDefinition,
+  StackStatus,
 } from "./types.js";
 
 interface RepoCoordinates {
@@ -100,7 +100,7 @@ function mapPr(pr: {
 }
 
 function renderCombinedTitle(template: string, stackName: string): string {
-  return template.replaceAll("{{stack.name}}", stackName).replaceAll("{{train.name}}", stackName);
+  return template.replaceAll("{{stack.name}}", stackName);
 }
 
 export async function findPullRequestByHead(
@@ -130,17 +130,17 @@ export async function ensurePullRequests(
   octokit: Octokit,
   coords: RepoCoordinates,
   owner: string,
-  train: TrainDefinition,
-  status: TrainStatus,
+  stack: StackDefinition,
+  status: StackStatus,
   defaults: RepoDefaults,
   options: EnsurePrsOptions,
-): Promise<{ operations: string[]; status: TrainStatus }> {
+): Promise<{ operations: string[]; status: StackStatus }> {
   const operations: string[] = [];
   const branchStatuses = [...status.branches];
   const draft = options.draft ?? defaults.prs.draft;
   const printUrls = options.printUrls ?? defaults.prs.printUrls;
-  const combinedBranch = train.branches.find((branch) => branch.role === "combined")?.name ?? null;
-  const activeBranches = train.branches.filter((branch) => !status.branches.find((candidate) => candidate.name === branch.name)?.isMerged);
+  const combinedBranch = stack.branches.find((branch) => branch.role === "combined")?.name ?? null;
+  const activeBranches = stack.branches.filter((branch) => !status.branches.find((candidate) => candidate.name === branch.name)?.isMerged);
 
   // Phase 1: ensure each PR exists and capture its latest title/base/body metadata.
   for (const [index, branch] of activeBranches.entries()) {
@@ -153,11 +153,11 @@ export async function ensurePullRequests(
     const commitMessage =
       branch.name === combinedBranch
         ? {
-            title: renderCombinedTitle(defaults.prs.combinedTitleTemplate, train.name),
+            title: renderCombinedTitle(defaults.prs.combinedTitleTemplate, stack.name),
             body: "",
           }
         : await getHeadCommitMessage(git, branch.name);
-    const baseBranch = index === 0 || branch.name === combinedBranch ? train.prTarget : activeBranches[index - 1]?.name ?? train.prTarget;
+    const baseBranch = index === 0 || branch.name === combinedBranch ? stack.prTarget : activeBranches[index - 1]?.name ?? stack.prTarget;
     let pr = existing;
 
     if (!pr) {
@@ -200,7 +200,7 @@ export async function ensurePullRequests(
       continue;
     }
 
-    const updatedStatus: TrainStatus = { ...status, branches: branchStatuses };
+    const updatedStatus: StackStatus = { ...status, branches: branchStatuses };
     const nextBody = upsertManagedToc(branchStatus.pr.body, updatedStatus, branch.name);
     operations.push(`update-pr:${branch.name}#${branchStatus.pr.number}`);
 
