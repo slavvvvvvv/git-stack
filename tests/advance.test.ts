@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activeBranches, getMergedStatusBaseRef, normalActiveBranches, reconcileBranchStatusWithPr } from "../src/train.js";
+import { resolveCheckoutSelector } from "../src/operations.js";
 import type { BranchStatus, TrainDefinition, TrainStatus } from "../src/types.js";
 
 const trainDefinition: TrainDefinition = {
@@ -90,5 +91,13 @@ describe("active branch helpers", () => {
 
   it("filters combined branch out of normal active branches", () => {
     expect(normalActiveBranches(status).map((branch) => branch.name)).toEqual(["feature-b"]);
+  });
+
+  it("resolves checkout aliases relative to the current stack position", () => {
+    expect(resolveCheckoutSelector(status, "first")).toBe("feature-a");
+    expect(resolveCheckoutSelector(status, "last")).toBe("combined");
+    expect(resolveCheckoutSelector(status, "next")).toBe("combined");
+    expect(resolveCheckoutSelector(status, "previous")).toBe("feature-a");
+    expect(resolveCheckoutSelector(status, "1")).toBe("feature-b");
   });
 });

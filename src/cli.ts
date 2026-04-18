@@ -235,13 +235,18 @@ program
     );
   });
 
-program
-  .command("checkout <selector>")
-  .description("Checkout a branch by index, name, or 'combined'")
-  .option("--stack <name>", "stack name")
-  .action(async (selector: string, options: { stack?: string }) => {
-    await runWithOutput(checkoutTrainBranch(process.cwd(), options.stack, selector), program.opts().json ?? false, "Checking out branch");
-  });
+function registerCheckoutCommand(commandName: string): void {
+  program
+    .command(`${commandName} <selector>`)
+    .description("Checkout a branch by first, last, next, previous, index, name, or 'combined'")
+    .option("--stack <name>", "stack name")
+    .action(async (selector: string, options: { stack?: string }) => {
+      await runWithOutput(checkoutTrainBranch(process.cwd(), options.stack, selector), program.opts().json ?? false, "Checking out branch");
+    });
+}
+
+registerCheckoutCommand("checkout");
+registerCheckoutCommand("c");
 
 const mcp = program.command("mcp").description("Run the git-stack MCP server or manage client installs");
 

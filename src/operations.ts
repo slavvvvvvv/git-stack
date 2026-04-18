@@ -241,18 +241,7 @@ export async function checkoutTrainBranch(
 ): Promise<OperationResult> {
   const { git } = await createRepoContext(cwd);
   const status = await getTrainStatus(cwd, trainName);
-  let targetBranch: string | undefined;
-
-  if (selector === "combined") {
-    targetBranch = status.combinedBranch ?? undefined;
-  } else {
-    const maybeIndex = Number(selector);
-    if (Number.isInteger(maybeIndex) && `${maybeIndex}` === selector) {
-      targetBranch = status.branches[maybeIndex]?.name;
-    } else {
-      targetBranch = status.branches.find((branch) => branch.name === selector)?.name;
-    }
-  }
+  const targetBranch = resolveCheckoutSelector(status, selector);
 
   if (!targetBranch) {
     throw new Error(`Could not resolve branch selector "${selector}".`);
@@ -267,6 +256,36 @@ export async function checkoutTrainBranch(
     warnings: nextStatus.warnings,
     status: nextStatus,
   };
+}
+
+export function resolveCheckoutSelector(status: TrainStatus, selector: string): string | undefined {
+  if (selector === "combined") {
+    return status.combinedBranch ?? undefined;
+  }
+
+  if (selector === "first") {
+    return status.branches[0]?.name;
+  }
+
+  if (selector === "last") {
+    return status.branches.at(-1)?.name;
+  }
+
+  if (selector === "next" || selector === "previous") {
+    const currentIndex = status.branches.findIndex((branch) => branch.name === status.currentBranch);
+    if (currentIndex < 0) {
+      return undefined;
+    }
+    const offset = selector === "next" ? 1 : -1;
+    return status.branches[currentIndex + offset]?.name;
+  }
+
+  const maybeIndex = Number(selector);
+  if (Number.isInteger(maybeIndex) && `${maybeIndex}` === selector) {
+    return status.branches[maybeIndex]?.name;
+  }
+
+  return status.branches.find((branch) => branch.name === selector)?.name;
 }
 
 export async function statusOperation(cwd: string, trainName?: string): Promise<OperationResult> {
