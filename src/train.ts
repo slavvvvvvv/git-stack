@@ -96,28 +96,37 @@ async function buildBranchStatus(
   return statuses;
 }
 
-export async function getTrainStatus(cwd: string, trainName?: string): Promise<TrainStatus> {
+export async function getTrainStatus(
+  cwd: string,
+  trainName?: string,
+  options?: {
+    includePrMetadata?: boolean;
+  },
+): Promise<TrainStatus> {
   const { git, repoPath } = await createRepoContext(cwd);
   const { train, config, currentBranch } = await resolveTrain(git, trainName, repoPath);
   const combinedBranch = await ensureCombinedBranch(git, train);
   const branches = await buildBranchStatus(git, repoPath, train, currentBranch);
   const globalConfig = loadGlobalConfig();
   const warnings: string[] = [];
+  const includePrMetadata = options?.includePrMetadata ?? true;
 
-  try {
-    const { octokit, coords } = await createOctokit(git, config.defaults, globalConfig.github?.token);
-    const ownerResponse = await octokit.repos.get({ owner: coords.owner, repo: coords.repo });
-    const owner = ownerResponse.data.owner.login;
-    for (let index = 0; index < branches.length; index += 1) {
-      const branch = branches[index];
-      if (!branch) {
-        continue;
+  if (includePrMetadata) {
+    try {
+      const { octokit, coords } = await createOctokit(git, config.defaults, globalConfig.github?.token);
+      const ownerResponse = await octokit.repos.get({ owner: coords.owner, repo: coords.repo });
+      const owner = ownerResponse.data.owner.login;
+      for (let index = 0; index < branches.length; index += 1) {
+        const branch = branches[index];
+        if (!branch) {
+          continue;
+        }
+        branch.pr = await findPullRequestByHead(octokit, coords, owner, branch.name);
+        branches[index] = reconcileBranchStatusWithPr(branch);
       }
-      branch.pr = await findPullRequestByHead(octokit, coords, owner, branch.name);
-      branches[index] = reconcileBranchStatusWithPr(branch);
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : String(error));
     }
-  } catch (error) {
-    warnings.push(error instanceof Error ? error.message : String(error));
   }
 
   const status: TrainStatus = {

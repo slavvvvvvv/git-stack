@@ -243,7 +243,7 @@ export async function checkoutTrainBranch(
   const config = loadStackConfig(repoPath);
   const selectorStackName = config.trains.find((train) => train.name === selector)?.name;
   const resolvedStackName = trainName ?? selectorStackName;
-  const status = await getTrainStatus(cwd, resolvedStackName);
+  const status = await getTrainStatus(cwd, resolvedStackName, { includePrMetadata: false });
   const targetBranch = resolveCheckoutSelector(status, selector);
 
   if (!targetBranch) {
@@ -251,7 +251,7 @@ export async function checkoutTrainBranch(
   }
 
   await checkoutBranch(git, targetBranch);
-  const nextStatus = await getTrainStatus(cwd, status.train.name);
+  const nextStatus = await getTrainStatus(cwd, status.train.name, { includePrMetadata: false });
 
   return {
     ok: true,
