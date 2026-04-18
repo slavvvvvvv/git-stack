@@ -239,8 +239,11 @@ export async function checkoutTrainBranch(
   trainName: string | undefined,
   selector: string,
 ): Promise<OperationResult> {
-  const { git } = await createRepoContext(cwd);
-  const status = await getTrainStatus(cwd, trainName);
+  const { git, repoPath } = await createRepoContext(cwd);
+  const config = loadStackConfig(repoPath);
+  const selectorStackName = config.trains.find((train) => train.name === selector)?.name;
+  const resolvedStackName = trainName ?? selectorStackName;
+  const status = await getTrainStatus(cwd, resolvedStackName);
   const targetBranch = resolveCheckoutSelector(status, selector);
 
   if (!targetBranch) {
@@ -259,6 +262,10 @@ export async function checkoutTrainBranch(
 }
 
 export function resolveCheckoutSelector(status: TrainStatus, selector: string): string | undefined {
+  if (selector === status.train.name) {
+    return status.branches[0]?.name;
+  }
+
   if (selector === "combined") {
     return status.combinedBranch ?? undefined;
   }

@@ -94,6 +94,7 @@ describe("active branch helpers", () => {
   });
 
   it("resolves checkout aliases relative to the current stack position", () => {
+    expect(resolveCheckoutSelector(status, "demo")).toBe("feature-a");
     expect(resolveCheckoutSelector(status, "first")).toBe("feature-a");
     expect(resolveCheckoutSelector(status, "last")).toBe("combined");
     expect(resolveCheckoutSelector(status, "next")).toBe("combined");
