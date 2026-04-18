@@ -5,7 +5,7 @@
 - a CLI for operating on stacked branches inside a git repository
 - an MCP server for exposing stack metadata and stack operations to agents and other tooling
 
-It is designed as a more ergonomic successor to `pr-train`, with explicit subcommands, managed PR navigation sections, cached repo-local stack state, and an MCP interface that mirrors the core workflows.
+It is designed as a more ergonomic successor to `pr-train`, with explicit subcommands, managed PR navigation sections, cached stack metadata, and an MCP interface that mirrors the core workflows.
 
 ## Why Use It
 
@@ -16,6 +16,7 @@ Useful cases:
 - You want to break a large feature into smaller PRs without manually rebasing and retargeting every branch yourself.
 - You want each PR in a stack to point at the previous PR automatically, with a visible stack table in every description.
 - You want a single command to sync branches, push them, and publish the full stack to GitHub.
+- You want local checkout/status flows to stay fast by reusing a global cache of stack PR metadata.
 - You want an MCP server so agents can inspect stacks, advance them, or help maintain them without scraping git output.
 
 Typical workflow:
@@ -115,6 +116,10 @@ Supporting modules:
 - [src/state.ts](/Users/slavko/git-stack/src/state.ts:1): cached derived state in `.git/stack/state.json`
 - [src/toc.ts](/Users/slavko/git-stack/src/toc.ts:1): managed PR TOC rendering and replacement
 - [templates/stack.yml](/Users/slavko/git-stack/templates/stack.yml:1): starter repo config
+
+Global metadata cache:
+
+- `~/.config/git-stack/cache.json`
 
 ## Requirements
 
@@ -220,6 +225,7 @@ git stack checkout first
 git stack checkout next
 git stack c previous
 git stack c 2
+git stack c my-cool-stack
 ```
 
 ## Common Workflows
@@ -484,6 +490,7 @@ Supported selector forms:
 - `previous`
 - numeric index such as `0`
 - explicit branch name such as `feature-a`
+- stack name such as `my-cool-stack` to jump to the first branch in that stack
 - literal `combined`
 
 Arguments:
@@ -684,6 +691,7 @@ Optional global config:
 
 - `~/.config/git-stack/config.yml`
 - `~/.config/git-stack/stacks.yml`
+- `~/.config/git-stack/cache.json`
 
 Authoritative stack definitions live in `~/.config/git-stack/stacks.yml`.
 Repo-local `.stack.yml` files are treated as a fallback input for backwards compatibility when the global stacks file does not exist yet.
@@ -866,6 +874,7 @@ Auth precedence:
 Cached derived state is written to:
 
 - `.git/stack/state.json`
+- `~/.config/git-stack/cache.json`
 
 Fields:
 
@@ -882,6 +891,7 @@ Purpose:
 
 - fast metadata access for MCP
 - a persisted snapshot of the most recently resolved status
+- fast local stack navigation without refetching GitHub PR metadata on every checkout
 
 ## PR Body Management
 
