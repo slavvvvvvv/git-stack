@@ -30,7 +30,38 @@ Typical workflow:
 - [Summary](#summary)
 - [Quick Start Guide](#quick-start-guide)
 - [CLI Docs](#cli-docs)
+- [CLI Global Flags](#global-cli-flags)
+- [CLI Commands](#cli-commands)
+- [git stack init](#git-stack-init)
+- [git stack config](#git-stack-config)
+- [git stack create](#git-stack-create-branches)
+- [git stack add](#git-stack-add-stack)
+- [git stack push](#git-stack-push)
+- [git stack help](#git-stack-help-topic)
+- [git stack status](#git-stack-status)
+- [git stack validate](#git-stack-validate)
+- [git stack sync](#git-stack-sync)
+- [git stack prs ensure](#git-stack-prs-ensure)
+- [git stack advance](#git-stack-advance)
+- [git stack checkout / c](#git-stack-checkout-selector)
+- [git stack mcp](#git-stack-mcp)
+- [git stack mcp install](#git-stack-mcp-install-target)
 - [MCP Docs](#mcp-docs)
+- [MCP Transport](#transport)
+- [MCP Resources](#resources)
+- [stack://repo/current/state](#stackrepocurrentstate)
+- [stack://repo/current/trains](#stackrepocurrenttrains)
+- [stack://repo/current/help](#stackrepocurrenthelp)
+- [MCP Tools](#tools)
+- [stack_help](#stack_help)
+- [stack_list_trains](#stack_list_trains)
+- [stack_get_train](#stack_get_train)
+- [stack_validate](#stack_validate)
+- [stack_sync_train](#stack_sync_train)
+- [stack_ensure_prs](#stack_ensure_prs)
+- [stack_advance_train](#stack_advance_train)
+- [stack_checkout_branch](#stack_checkout_branch)
+- [stack_refresh_metadata](#stack_refresh_metadata)
 - [Additional Info](#additional-info)
 - [Contribution](#contribution)
 
@@ -57,7 +88,7 @@ It is responsible for:
 
 - defining subcommands and user-facing flags
 - turning CLI args into structured operation calls
-- printing human-readable summaries or JSON
+- printing richer terminal output, including spinners, colored summaries, and stack status tables, or JSON when `--json` is used
 
 The CLI delegates to:
 
@@ -180,6 +211,15 @@ git stack push --draft
 git stack help overview
 git stack help create
 git stack help mcp
+```
+
+9. Move around the stack quickly:
+
+```bash
+git stack checkout first
+git stack checkout next
+git stack c previous
+git stack c 2
 ```
 
 ## Common Workflows
@@ -314,6 +354,7 @@ Behavior:
 - creates or updates PRs in order so each PR points at the previous branch in the stack
 - ensures the managed stack TOC with all stack PR links is present in the PR descriptions
 - supports draft/ready publishing
+- shows step-by-step CLI progress for sync/push and PR update phases
 
 Arguments:
 
@@ -348,6 +389,7 @@ Behavior:
 
 - resolves from the current branch if `--stack` is omitted
 - includes branch order, active/merged flags, combined branch marker, PR metadata when available, and warnings
+- prints a richer terminal table view by default; use `--json` for machine-readable output
 
 Arguments:
 
@@ -436,6 +478,10 @@ Checks out a stack branch.
 
 Supported selector forms:
 
+- `first`
+- `last`
+- `next`
+- `previous`
 - numeric index such as `0`
 - explicit branch name such as `feature-a`
 - literal `combined`
@@ -444,6 +490,10 @@ Arguments:
 
 - `<selector>`
 - `--stack <name>`
+
+Alias:
+
+- `git stack c <selector>`
 
 ### `git stack mcp`
 
@@ -634,6 +684,9 @@ Optional global config:
 
 - `~/.config/git-stack/config.yml`
 - `~/.config/git-stack/stacks.yml`
+
+Authoritative stack definitions live in `~/.config/git-stack/stacks.yml`.
+Repo-local `.stack.yml` files are treated as a fallback input for backwards compatibility when the global stacks file does not exist yet.
 
 ## Repo Config Schema
 
@@ -842,8 +895,9 @@ Managed PR body markers:
 Behavior:
 
 - replaces only the bounded managed section when markers already exist
-- appends the section when the markers are absent
+- prepends the managed stack block to the top of the PR body
 - renders active and merged branches separately when applicable
+- uses a compact HTML table with hosted SVG icons for PR state and the current-view indicator
 
 ## Development
 
